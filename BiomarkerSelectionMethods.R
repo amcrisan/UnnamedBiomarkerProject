@@ -29,6 +29,15 @@ taxonomy <- observation_metadata(dat)
 
 metadata<-read.csv(file="Data/SchubertMetadata.csv",header=T)
 
+#some manual wraning
+#sample DA00754 is only represented once as DA00754.2 whereas it is DA00754
+#in the metadata, causing some matching issues. The same is true for DA00939
+tempRow<-rownames(abundDat)
+tempRow[grep("DA00754.2",rownames(abundDat))]<-"DA00754"
+tempRow[grep("DA00939.2",rownames(abundDat))]<-"DA00939"
+
+rownames(abundDat)<-tempRow
+
 # ... the following samples are in the abundace table, but not in the metadata
 dropSamps <- setdiff(rownames(abundDat),metadata$sampleID)
 # for now, drop samples that don't have associated metadata
@@ -38,6 +47,15 @@ abundDat <- abundDat[!(rownames(abundDat) %in% dropSamps), ]
 dropSamps <- setdiff(metadata$sampleID,rownames(abundDat))
 metadata  <-  filter(metadata,!(sampleID %in% dropSamps))
 
+# make sure the metadata data and abundance table are in the same
+# row order. Not necessary, but I just like it this way
+abundDat <- abundDat[match(rownames(abundDat),metadata$sampleID),]
+
+if(sum(!(rownames(abundDat) == as.character(metadata$sampleID))) == 0){
+  print("Good to Go")
+}
+
+
 ######
 # The Wrangling 
 # removing the mouse data from the metadata and the abundance matricies
@@ -45,10 +63,6 @@ dropSamps<- filter(metadata, host_common_name == "human") %>% select(sampleID)
 metadata  <-  filter(metadata,sampleID %in% dropSamps$sampleID) %>% droplevels
 
 abundDat <- abundDat[match(rownames(abundDat),metadata$sampleID),]
-
-#sanity check - make sure the data are in teh same older
-sum(rownames(abundDat) != metadata$sampleID) == 0
-
 
 ########################################
 # Sanity check - comparing demographic data to Schubert's paper
@@ -61,9 +75,10 @@ sum(rownames(abundDat) != metadata$sampleID) == 0
 #expected cell frequencies were less than or equal to 5.
 
 #1. Distribution of case and controls
-table(metadata$disease_stat) # I have 2 fewer cases
+table(metadata$disease_stat) # checks out
 
 #2. Age
+summary(aov(age ~ disease_stat, data = metadata)) # p = 0.034 (agree)
 
 #3. Race
 table(metadata$disease_stat,metadata$race)
@@ -73,9 +88,13 @@ metadata$race2 <- mapvalues(metadata$race,
           to=c("Other/unknown","Black","Other/unknown","Other/unknown",
                "Other/unknown","White"))
 
-fisher.test(table(metadata$disease_stat,metadata$race2)) # p = 0.79 (off - but agree not sig)
+#using chi.sq I can get 0.712 reported in paper, but fishers provides the more exact p-value
+fisher.test(table(metadata$disease_stat,metadata$race2)) # p = 0.752 (off - but agree not sig)
+chisq.test(table(metadata$disease_stat,metadata$race2)) # p=0.712 (agree - but maybe not right test choice)
 
 #4. Weight
+# raw weight values were not given, so it is not possible to perform an anova 
+# (metadat) only contains weight categories.
 
 #5. Drug Use
 chisq.test(table(metadata$disease_stat,metadata$antibiotics..3mo)) # p<0.0001 (agree)
@@ -84,7 +103,7 @@ chisq.test(table(metadata$disease_stat,metadata$antibiotics..3mo)) # p<0.0001 (a
 chisq.test(table(metadata$disease_stat,metadata$antacid)) # p ~ 0.0001 (agree)
 chisq.test(table(metadata$disease_stat,metadata$Surgery6mos)) # p<0.0001 (agree)
 fisher.test(table(metadata$disease_stat,metadata$historyCdiff)) # p = 0.793 (agree)
-fisher.test(table(metadata$disease_stat,metadata$ResidenceCdiff)) # p =  0.595 (off - but agree not sig)
+fisher.test(table(metadata$disease_stat,metadata$ResidenceCdiff)) # p =  0.593 (agree)
 chisq.test(table(metadata$disease_stat,metadata$Healthworker)) # p<= 0.0007 (off - but agree sig)
 
 ########################################
@@ -112,7 +131,7 @@ tmp <- filter(metadata,disease_stat %in% c("Case","NonDiarrhealControl")) %>%
 
 tmp$response = factor(tmp$response,levels = c(0,1))
 
-ci.auc(roc(response=tmp$response,predictor=tmp$basePredCase)) # 0.891 (0.849-0.934) - agree & slightly off
+ci.auc(roc(response=tmp$response,predictor=tmp$basePredCase)) # 0.894 (0.852-0.936) - agree & slightly off
 
 
 # case and diarrheal control
@@ -130,6 +149,8 @@ ci.auc(roc(response=tmp$response,predictor=tmp$basePredDcontrol)) # 0.566 ( 0.48
 
 ################################
 # Diversity - inverse simpsons
+# The AUC and confidence interval measures are slightly off only in the thousandths decimal place
+# even though tht exact result is not reproduced I think this is close enough.
 
 # case and non-diarrheal control
 tmp <- filter(metadata,disease_stat %in% c("Case","NonDiarrhealControl")) %>%
@@ -137,7 +158,7 @@ tmp <- filter(metadata,disease_stat %in% c("Case","NonDiarrhealControl")) %>%
   mutate(response = mapvalues(disease_stat,c("Case","NonDiarrhealControl"),c(1,0))) %>%
   droplevels
 
-ci.auc(roc(response=tmp$response,predictor=tmp$inverseSimpson)) # 0.809 ( 0.754 - 0.866 ) - agree & exact
+ci.auc(roc(response=tmp$response,predictor=tmp$inverseSimpson)) # 0.808 ( 0.752 - 0.863 ) - agree & slightly off
 
 # case and diarrheal control
 tmp <- filter(metadata,disease_stat %in% c("Case","DiarrhealControl")) %>%
@@ -146,7 +167,7 @@ tmp <- filter(metadata,disease_stat %in% c("Case","DiarrhealControl")) %>%
   droplevels
 
 tmp$response = factor(tmp$response,levels = c(0,1))
-ci.auc(roc(response=tmp$response,predictor=tmp$inverseSimpson)) # 0.583 ( 0.498 - 0.668 ) - agree & slightly - off 
+ci.auc(roc(response=tmp$response,predictor=tmp$inverseSimpson)) # 0.581 ( 0.496 - 0.665 ) - agree & slightly - off 
 
 
 ########################################
@@ -162,12 +183,19 @@ schubertOTUs <-paste0("Otu",schubertOTUs)
 
 #1. Filter 1 :  distribution filter
 # remove any OTUs where more than 90% of the data is 0
+#
+# RATIONALE : using a statistical test with a p-value cutoff
+# "spends alpha" - this means that the p-value cutoff for subsequent 
+# statistical tests needs tobe more stringent for them to really be 
+# useful. Also, you don't want to waste your time performing statistical 
+# tests on features  that will be unhelpful because there is no information there.
 abFact = 0
 percentCounts <- apply(abundDat,2,function(x){
   quantile(x,probs = seq(0.1,0.9,by=0.1))["90%"] > abFact
 })
 
 
+#remove those OTUs
 abundDat  <-  abundDat[,percentCounts]
 
 
@@ -175,6 +203,8 @@ abundDat  <-  abundDat[,percentCounts]
 
 # 2. Kruskal Wallis Filter
 # I can also adjust the p-values after this, but I've choose not to .. for now..
+#
+# RATIONALE : used in LeFse already, left it in.
 
 otu.pVal<-apply(abundDat,2,function(x){
   kruskal.test(x,g=metadata$disease_stat)$p.value})
@@ -183,12 +213,28 @@ abundDat  <-  abundDat[,otu.pVal <0.05]
 
 
 # --- Normally LefSe does a Wilcox group wise filter here ----
-# I really don't think that filter is necessary. You've already spen
-# some alpha on the Krusal Wallis test. 
+# I really don't think that filter is necessary. You've already spent
+# some alpha on the Krusal Wallis test - why spend more. The next
+# step can handle when variables >> observations, so I am going to
+# give the next step as much reasonable data as possible.
 
 
 
 #4. Penalized regression
+#
+# RATIONALE : Why not interpret the betas of a regression? Everyone
+# knows how to do this, and does it all the time since regressions
+# are such a common instrument. Using the glment package, we can
+# use penalized regression to perform feature selection. GLMNET
+# allows us to use lasso (alpha = 1), ridge (alpha = 0), and
+# so called elastic-net (alpha between 0 and 1). By using either of
+# the three methods of penalized regression we can control how many
+# correlated features (lasso = least; ridge = most) are selected.
+# penalized regression has also been used in human microarray studies
+# and are well suited from when variables >> observations.
+#
+# Penalized LDA does exist, but I still prefer the more direct interpretations
+# of the beta's offorded by glmnet. 
 
 # A. Using the abundance data only
 bestOTUs_noMeta<-getBestOTU(response=metadata$disease_stat,
@@ -210,6 +256,7 @@ tmp<-otuCheck(bestOTUs = bestOTUs_noMeta,
                    meta  = metadata[,c("sampleID","disease_stat")])
 
 vennList<-vennText(A=schubertOTUs,B=levels(bestOTUs_noMeta$Var.2))
+
 
 
 # B. Using metadata
