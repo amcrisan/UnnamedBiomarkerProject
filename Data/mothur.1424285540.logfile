@@ -1,0 +1,198 @@
+Mac version
+
+Using ReadLine
+
+Running 64Bit Version
+
+mothur v.1.32.1
+Last updated: 10/16/2013
+
+by
+Patrick D. Schloss
+
+Department of Microbiology & Immunology
+University of Michigan
+pschloss@umich.edu
+http://www.mothur.org
+
+When using, please cite:
+Schloss, P.D., et al., Introducing mothur: Open-source, platform-independent, community-supported software for describing and comparing microbial communities. Appl Environ Microbiol, 2009. 75(23):7537-41.
+
+Distributed under the GNU General Public License
+
+Type 'help()' for information on the commands that are available
+
+Type 'quit()' to exit program
+Interactive Mode
+
+
+mothur >  make.biom(shared=all.final.an.0.03.subsample.shared, constaxonomy=all.final.an.0.03.cons.taxonomy,metadata=SchubertMetadata.txt)
+[ERROR]: expected 20 items of data for sample DA10002 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10003 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10005 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10006 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10007 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10008 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10009 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10011 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10012 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10015 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10016 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10017 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10018 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10019 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10022 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10023 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10024 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10025 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10026 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10027 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10028 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10029 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10030 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10032 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10033 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10034 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10035 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10036 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10037 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10038 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10039 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10040 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10041 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10042 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10045 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10047 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10048 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10049 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10050 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10051 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10053 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10054 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10055 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10056 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10057 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10058 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10059 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10061 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10062 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10065 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10066 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10067 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10068 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10069 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10070 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10071 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10073 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10075 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10076 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10077 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10079 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10081 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10082 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10083 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10084 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10085 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10088 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10090 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10091 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10092 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10093 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10094 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10095 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10096 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10097 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10098 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10100 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10101 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10103 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10104 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10106 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10107 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10108 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10109 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10110 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10112 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10113 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10114 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10115 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10116 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10117 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10119 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10120 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10121 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10122 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10123 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10124 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10125 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10126 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10127 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10129 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10130 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10131 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10133 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10134 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10135 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10136 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10137 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10138 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10139 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10141 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10142 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10143 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10145 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10146 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10147 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10148 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10149 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10150 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10151 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10152 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10154 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10155 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10156 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10157 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10158 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10159 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10160 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10161 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10162 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10164 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10165 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10166 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10167 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10168 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10169 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10170 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10171 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10172 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10173 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10174 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10175 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10176 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10177 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10178 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10180 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10181 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10182 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10183 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10184 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10186 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10187 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10188 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10189 read 21, quitting.
+[ERROR]: expected 20 items of data for sample DA10191 read 21, quitting.
+[ERROR]: can't find metadata information for DA00156, quitting.
+
+mothur >  make.biom(shared=all.final.an.0.03.subsample.shared, constaxonomy=all.final.an.0.03.cons.taxonomy)
+0.03
+
+Output File Names: 
+all.final.an.0.03.subsample.0.03.biom
+
+
+mothur > exit
+[ERROR]: You are missing (
+Invalid.
+
+quitting mothur
