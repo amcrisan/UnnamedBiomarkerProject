@@ -1,6 +1,6 @@
 # Unnamed Biomarker Project
 
-This is the developement repository for a biomarker selection method that currently has no name. It's code name is "modified lefse".
+This is the developement repository for a biomarker selection method that currently has no name. It's code name is "modified lefse". A final "report" will be generated using R markdown - eventually...
 
 ## Contents
 

@@ -8,6 +8,7 @@ library(e1071)
 library(nnet)
 library(pROC)
 library(vegan)
+library(glmnet)
 
 source("SupportingBiomarkerMethods.R")
 
@@ -170,13 +171,15 @@ tmp$response = factor(tmp$response,levels = c(0,1))
 ci.auc(roc(response=tmp$response,predictor=tmp$inverseSimpson)) # 0.581 ( 0.496 - 0.665 ) - agree & slightly - off 
 
 
+
+
 ########################################
 # The actual biomarker selection
 ########################################
 
 #grab the LeFSe OTUS from Figure 3
-schubertOTUs<-c(1,2,14,22,33,24,10,40,29,12,36,11,15,68,39,
-                34,61,38,88,51,63,27,66,46,25,26,37,59,42,56,
+schubertOTUs<-c(1,2,14,22,33,24,10,40,29,13,36,11,15,68,39,
+                34,61,38,99,51,63,27,66,46,25,26,37,59,42,56,
                 85,45,28,41,30,18,21,6,7,3,5,4) %>% 
                 formatC(width=4,flag="0") 
 schubertOTUs <-paste0("Otu",schubertOTUs)
@@ -214,7 +217,7 @@ abundDat  <-  abundDat[,otu.pVal <0.05]
 
 # --- Normally LefSe does a Wilcox group wise filter here ----
 # I really don't think that filter is necessary. You've already spent
-# some alpha on the Krusal Wallis test - why spend more. The next
+# some alpha on the Kruskal Wallis test - why spend more. The next
 # step can handle when variables >> observations, so I am going to
 # give the next step as much reasonable data as possible.
 
@@ -230,13 +233,23 @@ abundDat  <-  abundDat[,otu.pVal <0.05]
 # so called elastic-net (alpha between 0 and 1). By using either of
 # the three methods of penalized regression we can control how many
 # correlated features (lasso = least; ridge = most) are selected.
-# penalized regression has also been used in human microarray studies
+# Penalized regression has also been used in human microarray studies
 # and are well suited from when variables >> observations.
 #
+# Also, in practice it seems that there isn't a huge difference between
+# using LDA or vanilla binary regression (some sources include the elements of statistical learning - section 4.4.4: 
+#  ... p. 105 - "it is generally felt that logistic regression is a safer, more robust bet than the LDA model,
+#  ... relying on fewer assumptions. It is our experience that the models give very similar results,
+#  ... even when LDA is used inapproperiately, such as with qualtiative predictors.)
+# Thus, the substitution of regression for the LDA isn't supposed to be revolutionary. 
+# But it does give more flexibility to work with (in my opinion)
+#
 # Penalized LDA does exist, but I still prefer the more direct interpretations
-# of the beta's offorded by glmnet. 
+# of the beta's afforded by glmnet. 
 
-# A. Using the abundance data only
+#  ----- A. Using the abundance data only -----
+# could be parallelized to improve efficeny.
+# using one core, can take ~ 5 minnutes to run.
 bestOTUs_noMeta<-getBestOTU(response=metadata$disease_stat,
                   countMatrix=abundDat,
                   alph=1,
@@ -247,6 +260,16 @@ bestOTUs_noMeta<-getBestOTU(response=metadata$disease_stat,
 
 bestOTUs_noMeta<-melt(table(bestOTUs_noMeta$L1,bestOTUs_noMeta$value))
 
+# giving some column names to the bestOTU list
+colnames(bestOTUs_noMeta) <- c("Sample","OTU","BootAttempts")
+
+
+# otuCheck gives me some diagnostic plots regarding the OTUs that have been selected
+# 1. sharedTaxaPlot - this is basically a "venn" diagram, but is more readable. It shows
+#                     whether an individual OTU is shared between (multinomial) disease states
+# 2. abundacePlot - is a little dense. If you want to make it better, set maxTaxLevel to something
+#                   else (for example "genus", or "family"). This produces a boxplot of the abundance for each
+#                   of the multinomial controls.
 
 tmp<-otuCheck(bestOTUs = bestOTUs_noMeta, 
                    taxonomy = taxonomy, 
@@ -255,12 +278,36 @@ tmp<-otuCheck(bestOTUs = bestOTUs_noMeta,
                    countMatrix = abundDat,
                    meta  = metadata[,c("sampleID","disease_stat")])
 
-vennList<-vennText(A=schubertOTUs,B=levels(bestOTUs_noMeta$Var.2))
+vennList<-vennText(A=schubertOTUs,B=levels(bestOTUs_noMeta$OTU))
 
 
 
-# B. Using metadata
-getBestOTU(metadata=metadata.sub,
+# ----- B. Using metadata -----
+# now we can "adjust" the biomarkers for the impacts of the different metadata variables.
+# Loosely, this should mean that biomarkers which are highly correlated with specific
+# metadata variables are less likely to be selected. So the biomarkers that drop
+# out are likely to provide "value added" information. This still needs to be
+# checked afterwards to make sure that's true. Also - because diversity was
+# found to be significant, I would also like to adjust for that. 
+
+#create a subsample of the metadata with variables that I want to "adjust" for. 
+# I will adjust for all the elements in the base model
+metaVars<-c("sampleID",
+            "age",
+            "gender",
+            "race2",
+            "antibiotics..3mo",
+            "antacid",
+            "Surgery6mos",
+            "historyCdiff",
+            "ResidenceCdiff",
+            "Healthworker",
+            "inverseSimpson")
+
+metadata.sub<- metadata[,metaVars]
+
+#now select OTUs again
+bestOTUs_Meta<-getBestOTU(metadata=metadata.sub,
            response=metadata$disease_stat,
            varsToRemove= NULL,
            countMatrix=abundDat,
@@ -269,3 +316,37 @@ getBestOTU(metadata=metadata.sub,
            cvfold=5,
            logOTUData=TRUE,
            method = "multinomial")
+
+bestOTUs_Meta<-melt(table(bestOTUs_Meta$L1,bestOTUs_Meta$value))
+
+# giving some column names to the bestOTU list
+colnames(bestOTUs_Meta) <- c("Sample","OTU","BootAttempts")
+
+#adding another columns to indicate whether they are OTUs or metadata variables
+bestOTUs_Meta$biomarkerType  <- ifelse(grepl("Otu",bestOTUs_Meta$OTU),"OTU","META")
+
+#a quick look at the useful metadata variables
+filter(bestOTUs_Meta,biomarkerType == "META")
+
+#now just get at the useful OTUs, see how they do.
+bestOTUs_Meta_onlyOTUs<-filter(bestOTUs_Meta,biomarkerType == "OTU") %>% droplevels
+
+#check their usefullness
+tmp<-otuCheck(bestOTUs = bestOTUs_Meta_onlyOTUs, 
+              taxonomy = taxonomy, 
+              BootMin = 100, 
+              maxTaxaLevel = "all",
+              countMatrix = abundDat,
+              meta  = metadata[,c("sampleID","disease_stat")])
+
+#similarity to schubert
+vennList<-vennText(A=schubertOTUs,B=levels(bestOTUs_Meta_onlyOTUs$OTU))
+
+#similarity to bestOTUS_noMeta
+vennList<-vennText(A=levels(bestOTUs_Meta_onlyOTUs$OTU),B=levels(bestOTUs_noMeta$OTU))
+
+
+
+# ----- C. Using continous reponse -----
+# take OTU19 out, use it's values as a continous response. So the assumption is 
+# the higher levels of OTU19 (more C.diff) the worse of you probably are.

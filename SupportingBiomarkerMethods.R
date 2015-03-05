@@ -67,6 +67,7 @@ getBestOTU<-function(metadata=NULL,response=NULL,varsToRemove= NULL,countMatrix=
     
   }else{
   #join the metadata with the adbundance data, then drop the sample number
+  # TO DO: eventually this has to generalize and maybe not rely on sampleID so much.
   tmp <-merge(x=countMatrix,y=metadata,by.x=0,by.y="sampleID")
   tmp2<-tmp[,2:ncol(tmp)]
   }
@@ -142,8 +143,7 @@ otuCheck<-function(bestOTUs = NULL, taxonomy = NULL, BootMin = 100,
   linnean = 1:6
   names(linnean)  <- c("kingdom","phylum","class","order","family","genus")
   
-  # giving some column names to the bestOTU list
-  colnames(bestOTUs) <- c("Sample","OTU","BootAttempts")
+  
   
   #remove OTUs that pop up inconsistently (presence was dependent of CV splits)
   bestOTUs<-filter(bestOTUs,BootAttempts == BootMin)
@@ -220,8 +220,8 @@ vennText<-function(A=NULL,B=NULL){
   print(B_Only)
   
   return(list(both=both,
-              A_only = A_only,
-              B_only = B_only))
+              A_only = A_Only,
+              B_only = B_Only))
 
 }
 
