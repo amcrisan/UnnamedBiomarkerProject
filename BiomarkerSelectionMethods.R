@@ -247,22 +247,29 @@ abundDat  <-  abundDat[,otu.pVal <0.05]
 # Penalized LDA does exist, but I still prefer the more direct interpretations
 # of the beta's afforded by glmnet. 
 
-#  ----- A. Using the abundance data only -----
+
+
+#  ----- A. Using the abundance data only  & Multinomial Response -----
 # could be parallelized to improve efficeny.
-# using one core, can take ~ 5 minnutes to run.
+# using one core, can take ~ 2 - 5 minutes to run based upon boot num
+# personally, I prefer a bootnumb of 100, but I am doing 30 to 
+# approximately "LefSe's"
 bestOTUs_noMeta<-getBestOTU(response=metadata$disease_stat,
                   countMatrix=abundDat,
                   alph=1,
-                  bootNum=100,
+                  bootNum=30,
                   cvfold=5,
                   logOTUData=TRUE,
-                  method = "multinomial")
+                  responseType = "multinomial",
+                  type.measure="class")
 
-bestOTUs_noMeta<-melt(table(bestOTUs_noMeta$L1,bestOTUs_noMeta$value))
 
-# giving some column names to the bestOTU list
-colnames(bestOTUs_noMeta) <- c("Sample","OTU","BootAttempts")
+# effect summary variable has two arguments
+# ... effectSummary$effectSizePlot which shows the effect log odds beta
+# ... effectSummary$effectSizeSummary which is a table that has each OTU, a summary of the beta (mean, min, max ect.)
 
+effectSummary<-getEffectScore(OTUdat = bestOTUs_noMeta,bootMin=(30*0.9),response="multinomial")
+bestOTUs_noMeta_pass<-effectSummary$effectSizeSummary
 
 # otuCheck gives me some diagnostic plots regarding the OTUs that have been selected
 # 1. sharedTaxaPlot - this is basically a "venn" diagram, but is more readable. It shows
@@ -271,18 +278,44 @@ colnames(bestOTUs_noMeta) <- c("Sample","OTU","BootAttempts")
 #                   else (for example "genus", or "family"). This produces a boxplot of the abundance for each
 #                   of the multinomial controls.
 
-tmp<-otuCheck(bestOTUs = bestOTUs_noMeta, 
+tmp<-otuCheck(bestOTUs = bestOTUs_noMeta_pass, 
                    taxonomy = taxonomy, 
-                   BootMin = 100, 
                    maxTaxaLevel = "all",
                    countMatrix = abundDat,
                    meta  = metadata[,c("sampleID","disease_stat")])
 
-vennList<-vennText(A=schubertOTUs,B=levels(bestOTUs_noMeta$OTU))
+# of note  - there is perfect overlap if I use *all* otus that are found (i.e. effectSize summary bootMin = 0)
+# thus, some differences are due to stringency.
+vennList<-vennText(A=schubertOTUs,B=levels(bestOTUs_noMeta_pass$Predictor))
+
+# ---- Investigate those unique to schubert
+
+# some OTUs were filtered out at the distribution filter step, so
+# remove those, from the vennList.
+notInAbund<-setdiff(vennList$A_only,colnames(abundDat))
+tmpAbund<-melt(abundDat[,setdiff(vennList$A_only,notInAbund)])
+#colnames(tmpAbund)<-c("sampleID","OTU","Abundance")
+#tmpAbund <- merge(tmpAbund,metadata[,c("sampleID","disease_stat")],by="sampleID")
+
+
+# ------ investigate those unique to method
+#similarity to schubert
+# some OTUs were filtered out at the distribution filter step, so
+# remove those, from the vennList.
+tmpAbund<-melt(abundDat[,vennList$B_only])
+colnames(tmpAbund)<-c("sampleID","OTU","Abundance")
+tmpAbund <- merge(tmpAbund,metadata[,c("sampleID","disease_stat")],by="sampleID")
+
+# low abundance, too high a reliable on outliers?
+ggplot(data=tmpAbund,aes(x=disease_stat,y=log2(Abundance+1)))+
+  geom_boxplot()+
+  facet_wrap(~OTU)+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle=90,hjust=1))
 
 
 
-# ----- B. Using metadata -----
+# ----- B. Using metadata  & Multinomial Response-----
 # now we can "adjust" the biomarkers for the impacts of the different metadata variables.
 # Loosely, this should mean that biomarkers which are highly correlated with specific
 # metadata variables are less likely to be selected. So the biomarkers that drop
@@ -312,41 +345,40 @@ bestOTUs_Meta<-getBestOTU(metadata=metadata.sub,
            varsToRemove= NULL,
            countMatrix=abundDat,
            alph=1,
-           bootNum=100,
+           bootNum=30,
            cvfold=5,
            logOTUData=TRUE,
-           method = "multinomial")
+           responseType = "multinomial",
+           type.measure="class")
 
-bestOTUs_Meta<-melt(table(bestOTUs_Meta$L1,bestOTUs_Meta$value))
+effectSummary<-getEffectScore(OTUdat = bestOTUs_Meta,bootMin=(30*0.9),response="multinomial")
+bestOTUs_Meta_pass<-effectSummary$effectSizeSummary
 
-# giving some column names to the bestOTU list
-colnames(bestOTUs_Meta) <- c("Sample","OTU","BootAttempts")
 
 #adding another columns to indicate whether they are OTUs or metadata variables
-bestOTUs_Meta$biomarkerType  <- ifelse(grepl("Otu",bestOTUs_Meta$OTU),"OTU","META")
+bestOTUs_Meta_pass$biomarkerType  <- ifelse(grepl("Otu",bestOTUs_Meta_pass$Predictor),"OTU","META")
 
 #a quick look at the useful metadata variables
-filter(bestOTUs_Meta,biomarkerType == "META")
+filter(bestOTUs_Meta_pass,biomarkerType == "META")
 
 #now just get at the useful OTUs, see how they do.
-bestOTUs_Meta_onlyOTUs<-filter(bestOTUs_Meta,biomarkerType == "OTU") %>% droplevels
+bestOTUs_Meta_pass_onlyOTUs<-filter(bestOTUs_Meta_pass,biomarkerType == "OTU") %>% droplevels
 
 #check their usefullness
-tmp<-otuCheck(bestOTUs = bestOTUs_Meta_onlyOTUs, 
+tmp<-otuCheck(bestOTUs = bestOTUs_Meta_pass_onlyOTUs, 
               taxonomy = taxonomy, 
-              BootMin = 100, 
               maxTaxaLevel = "all",
               countMatrix = abundDat,
               meta  = metadata[,c("sampleID","disease_stat")])
 
-#similarity to schubert
-vennList<-vennText(A=schubertOTUs,B=levels(bestOTUs_Meta_onlyOTUs$OTU))
+#similarity to schubert (simliar results to OTUs found when not including metadata)
+vennList<-vennText(A=schubertOTUs,B=levels(bestOTUs_Meta_pass_onlyOTUs$Predictor))
 
-#similarity to bestOTUS_noMeta
-vennList<-vennText(A=levels(bestOTUs_Meta_onlyOTUs$OTU),B=levels(bestOTUs_noMeta$OTU))
+#similarity to prior list (very similar, there are some differences however )
+vennList<-vennText(A=levels(bestOTUs_noMeta_pass$Predictor),B=levels(bestOTUs_Meta_pass_onlyOTUs$Predictor))
 
 
 
-# ----- C. Using continous reponse -----
-# take OTU19 out, use it's values as a continous response. So the assumption is 
-# the higher levels of OTU19 (more C.diff) the worse of you probably are.
+# ----- C. Using binomial response & no  -----
+# the result that gives the most "overlap" is using not metadata, so I will see what
+# perfomring the glment steps with 
