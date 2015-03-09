@@ -85,6 +85,7 @@ getBestOTU<-function(metadata=NULL,response=NULL,varsToRemove= NULL,countMatrix=
     
     # This plot is for sanity checking
     #plot(lassoResults)
+    #print(lassoResults)
     
     results = coef(lassoResults, s = "lambda.min")
     #bestlambda<-lassoResults$lambda.min
@@ -167,7 +168,12 @@ getEffectScore<-function(OTUdat = NULL, bootMin = NULL,response=NULL, extraFilte
     betaSummary<- mutate(betaSummary, noZero = (Beta[,"Min."] >0) == (Beta[,"Max."] > 0)) %>%
       mutate(meanBeta = Beta[,"Mean"])
     print(sprintf("A total of %d features were dropped because their range of values spanned beta of zero",sum(!(betaSummary$noZero))))
-    betaSummary<- filter(betaSummary,noZero == TRUE)
+    
+    #seems that between multiple computers, the filter statement below either
+    #worked or didn't (may depend on dplyr version?). Replaced with something 
+    #less elegent.
+    #betaSummary<- filter(betaSummary,noZero == TRUE)
+    betaSummary<-betaSummary[betaSummary$noZero == TRUE,]
   }
 
   #create a small plot that shows each OTU and it's effect

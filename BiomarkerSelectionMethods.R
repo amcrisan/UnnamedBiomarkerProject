@@ -1,5 +1,6 @@
 library(biom)
 library(scales)
+library(plyr)
 library(dplyr)
 library(RColorBrewer)
 library(reshape)
@@ -284,9 +285,9 @@ tmp<-otuCheck(bestOTUs = bestOTUs_noMeta_pass,
                    countMatrix = abundDat,
                    meta  = metadata[,c("sampleID","disease_stat")])
 
-# of note  - there is perfect overlap if I use *all* otus that are found (i.e. effectSize summary bootMin = 0)
+# of note  - there is near perfect overlap if I use *all* otus that are found (i.e. effectSize summary bootMin = 0)
 # thus, some differences are due to stringency.
-vennList<-vennText(A=schubertOTUs,B=levels(bestOTUs_noMeta_pass$Predictor))
+vennList<-vennText(A=schubertOTUs,B=unique(as.character(bestOTUs_noMeta_pass$Predictor)))
 
 # ---- Investigate those unique to schubert
 
@@ -382,3 +383,6 @@ vennList<-vennText(A=levels(bestOTUs_noMeta_pass$Predictor),B=levels(bestOTUs_Me
 # ----- C. Using binomial response & no  -----
 # the result that gives the most "overlap" is using not metadata, so I will see what
 # perfomring the glment steps with 
+
+#I think the binary and continous response should work, but I feel like I've still
+#maybe missed something when mucking about with the multinomial response.
