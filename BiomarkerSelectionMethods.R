@@ -289,15 +289,27 @@ tmp<-otuCheck(bestOTUs = bestOTUs_noMeta_pass,
 # thus, some differences are due to stringency.
 vennList<-vennText(A=schubertOTUs,B=unique(as.character(bestOTUs_noMeta_pass$Predictor)))
 
+#here it is with bootMin = 0 (there is much larger overlap if we further filter for reliable OTUs)
+effectSummary<-getEffectScore(OTUdat = bestOTUs_noMeta,bootMin=0,response="multinomial")
+bestOTUs_noMeta_pass<-effectSummary$effectSizeSummary
+
+vennList<-vennText(A=schubertOTUs,B=unique(as.character(bestOTUs_noMeta_pass$Predictor)))
+
+
 # ---- Investigate those unique to schubert
 
 # some OTUs were filtered out at the distribution filter step, so
 # remove those, from the vennList.
 notInAbund<-setdiff(vennList$A_only,colnames(abundDat))
 tmpAbund<-melt(abundDat[,setdiff(vennList$A_only,notInAbund)])
-#colnames(tmpAbund)<-c("sampleID","OTU","Abundance")
-#tmpAbund <- merge(tmpAbund,metadata[,c("sampleID","disease_stat")],by="sampleID")
+colnames(tmpAbund)<-c("sampleID","OTU","Abundance")
+tmpAbund <- merge(tmpAbund,metadata[,c("sampleID","disease_stat")],by="sampleID")
 
+#low median abundance?
+ggplot(tmpAbund,aes(x=disease_stat,y=log2(Abundance)))+
+  geom_boxplot(notch=1)+
+  facet_wrap(~OTU)+
+  theme_bw()
 
 # ------ investigate those unique to method
 #similarity to schubert
@@ -386,3 +398,52 @@ vennList<-vennText(A=levels(bestOTUs_noMeta_pass$Predictor),B=levels(bestOTUs_Me
 
 #I think the binary and continous response should work, but I feel like I've still
 #maybe missed something when mucking about with the multinomial response.
+
+
+# ----- D. Continuous response  -----
+# initially, I had thought to use C.difficle (OTU 19), but since diversity seems
+# to be important, I'll try see if there are biomarkers that could "predict"
+# diversity.
+
+metaVars<-c("sampleID",
+            "age",
+            "gender",
+            "race2",
+            "antibiotics..3mo",
+            "antacid",
+            "Surgery6mos",
+            "historyCdiff",
+            "ResidenceCdiff",
+            "Healthworker")
+
+metadata.sub<- metadata[,metaVars]
+
+bestOTUs_Meta_continuous<-getBestOTU(metadata=metadata.sub,
+                          response=metadata$inverseSimpson,
+                          varsToRemove= NULL,
+                          countMatrix=abundDat,
+                          alph=1,
+                          bootNum=30,
+                          cvfold=5,
+                          logOTUData=TRUE,
+                          responseType = "continuous")
+
+effectSummary<-getEffectScore(OTUdat = bestOTUs_Meta_continuous,bootMin=(30*0.9),response="continuous")
+bestOTUs_Meta_continuous_pass<-effectSummary$effectSizeSummary
+
+
+#adding another columns to indicate whether they are OTUs or metadata variables
+bestOTUs_Meta_continuous_pass$biomarkerType  <- ifelse(grepl("Otu",bestOTUs_Meta_continuous_pass$Predictor),"OTU","META")
+
+#a quick look at the useful metadata variables
+filter(bestOTUs_Meta_continuous_pass,biomarkerType == "META")
+
+#now just get at the useful OTUs, see how they do.
+bestOTUs_Meta_continuous_pass_onlyOTUs<-filter(bestOTUs_Meta_continuous_pass,biomarkerType == "OTU") %>% droplevels
+
+tmp<-otuCheck(bestOTUs = bestOTUs_Meta_continuous_pass_onlyOTUs, 
+              taxonomy = taxonomy, 
+              maxTaxaLevel = "all",
+              countMatrix = abundDat,
+              meta  = metadata[,c("sampleID","disease_stat")])
+

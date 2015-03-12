@@ -85,7 +85,7 @@ getBestOTU<-function(metadata=NULL,response=NULL,varsToRemove= NULL,countMatrix=
     
     # This plot is for sanity checking
     #plot(lassoResults)
-    #print(lassoResults)
+    print(lassoResults$name)
     
     results = coef(lassoResults, s = "lambda.min")
     #bestlambda<-lassoResults$lambda.min
@@ -106,13 +106,15 @@ getBestOTU<-function(metadata=NULL,response=NULL,varsToRemove= NULL,countMatrix=
       
     }else{
       bestOTUs<-rownames(results)[which(results !=0)]
-      bestOTUs.all<-c(bestOTUs.all,unname(cbind(bestOTUs,x[bestOTUs,])))
+      bestOTUs<-bestOTUs[bestOTUs !="(Intercept)"]
+      bestOTUs.all<-rbind(bestOTUs.all,unname(cbind(bestOTUs,results[bestOTUs,])))
     }    
   }
   
   if(responseType == "multinomial"){
     colnames(bestOTUs.all)<-c("Response","Predictor","Beta")
   }else{
+    bestOTUs.all<-as.data.frame(bestOTUs.all)
     colnames(bestOTUs.all)<-c("Predictor","Beta")
   }
   
