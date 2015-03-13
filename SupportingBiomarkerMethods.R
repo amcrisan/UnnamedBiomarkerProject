@@ -257,6 +257,7 @@ otuCheck<-function(bestOTUs = NULL, taxonomy = NULL,
   }else{
     countMatrixDF<-melt(log2(countMatrix[,levels(bestOTUs$Predictor)] + 1))
   }
+  
   colnames(countMatrixDF) <- c("sampleID","OTU","Log2Abundance")
   
   #join with the metadata 
@@ -272,7 +273,7 @@ otuCheck<-function(bestOTUs = NULL, taxonomy = NULL,
     theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0))
   
   if(response == "multinomial"){
-  return(list(list(taxaName = data.frame(OTU=bestOTUs$Predictor,taxaName=bestOTUs$taxaName),
+  return(list(taxaName = data.frame(OTU=bestOTUs$Predictor,taxaName=bestOTUs$taxaName),
                    sharedTaxaPlot = sharedTaxa, 
                    abundancePlot = abundance))
   }else{

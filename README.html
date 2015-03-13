@@ -52,13 +52,51 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 
 
 
-<div id="a-generalizable-and-improved-framework-for-microbial-biomarker-discovery." class="section level2">
-<h2>A generalizable and improved framework for microbial biomarker discovery.</h2>
-<p><strong>Background :</strong> LEfSe is a popular method for biomarker discovery, however its statistical framing has some issues that limits its generalizability. To begin, LEfSe relies on binary class comparisons and cannot be applied to continuous or truly multinomial response types. Furthermore, LEfSe does not include additional quantitative or qualitative sample metadata variables for biomarker discovery largely because of the limitations imposed by the linear discriminate analysis step, which does not handle such data well. The result is that biomarkers are not properly adjusted against other informative, and perhaps more easily obtained, metatdata variables. We propose an alternative method that does generalize to multiple repsonse types and can include metadata. We explore its impact in a previously published study by Schubert <em>et al.</em> (2014)</p>
-<p><strong>Methods:</strong> We compared biomarkers found by LEfSe in a previously published study against our new approach. Discovery and validation efforts used a total of 338 samples: 94 with C. difficile; 89 with Diarrhea but no C. difficle; and 155 healthy controls. Biomarkers were identified by three steps: 1) an abundance distribution filter; 2) a Kruskal-Wallis test; 3) a penalized logistic regression. We explored multinomial and continuous response types, as well as found biomarkers with and without adjusting against sample metadata variables.</p>
-<p><strong>Results:</strong> Using a multinomial response, we found a total of 20 and 21 OTUs when adjusting and not-adjusting for metadata variables, respectively. Of these, 15 and 13 overlapped with the 42 OTUs previously reported by Schubert using LEfSe; 15 OTUs were shared between when adjusting/not for metadata variables. We were able to improve discrimination between cases and the respective controls - most noteably, we improved the AUC discriminating cases and diarrheal controls from 0.827 (0.768 - 0.887) to 0.872 (0.821 - 0.922), when not adjusting for metadata variables, and 0.897 (0.854 - 0.941) when adjusting. Next, attempted to find individual biomarkers that could best predict the diversity measures (continuous reponse), as Schubert <em>et al.</em> found that diversity alone was a good predictor of outcomes. We found a total of 51 biomarkers that predicted diversity, and achieved an AUC of 0.941 (0.91 - 0.973) for discriminating between cases and diarrheal controls.</p>
-<p><strong>Conclusions:</strong> The limitations of the current LEfSE implementation may effect the type and utility of the biomarkers discovered and ultimately impact the adoption to these biomarkers for broader application in the clinic or elsewhere. A penalized regression approach provides a more generalizable and robust framework for microbial biomarker discovery.</p>
-<p><strong>References:</strong> Schubert AM, Rogers MA, Ring C, Mogle J, Petrosino JP, Young VB, Aronoff DM, Schloss PD. Microbiome data distinguish patients with Clostridium difficile infection and non-C. difficile-associated diarrhea from healthy controls. MBio. 2014 May 6;5(3):e01021-14.</p>
+<div id="unnamed-biomarker-project" class="section level1">
+<h1>Unnamed Biomarker Project</h1>
+<p>This is the developement repository for a biomarker selection method that currently has no name. It’s code name is “modified lefse”. A final “report” will be generated using R markdown - eventually…</p>
+<div id="contents" class="section level2">
+<h2>Contents</h2>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Item</th>
+<th align="left">Type</th>
+<th align="left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Data</td>
+<td align="left">dir</td>
+<td align="left">Contains the biome file and other data. Small enough to go onto github</td>
+</tr>
+<tr class="even">
+<td align="left">BiomarkerSelectionMethods.R</td>
+<td align="left">R script</td>
+<td align="left">Main script. Comparing to Schubert paper + selecting biomarkers with “modified lefse” and compares to schubert</td>
+</tr>
+<tr class="odd">
+<td align="left">SupportingBiomarkerMethods.R</td>
+<td align="left">R script</td>
+<td align="left">The methodology guts. Contains the biomarker selection glmnet wrapper + also useful methods to reduce clutter in the main script.</td>
+</tr>
+<tr class="even">
+<td align="left">UnnameBiomarkerProject.Rproj</td>
+<td align="left">R project</td>
+<td align="left">R project file</td>
+</tr>
+<tr class="odd">
+<td align="left">Reports</td>
+<td align="left">dir</td>
+<td align="left">contains abstracts and small summary reports of the findings</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+</tr>
+</tbody>
+</table>
+</div>
 </div>
 
 

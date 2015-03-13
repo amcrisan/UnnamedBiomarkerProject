@@ -13,6 +13,7 @@ library(glmnet)
 
 source("SupportingBiomarkerMethods.R")
 
+set.seed(1)
 ########################################
 # Loading and wrangling the data
 ########################################
@@ -165,7 +166,7 @@ comparisons<-rbind(c("Case","DiarrhealControl"),
 # .. getting a storeing the AUCs
 storeAUC<-c()
 for(comp in 1:nrow(comparisons)){
-  comp<-comparisons[1,]
+  comp<-comparisons[comp,]
   metaSubs <- filter(metadata,disease_stat %in% comp)
   #always make sure to select right reference
   if("Case" %in% comp){
@@ -200,7 +201,7 @@ for(comp in 1:nrow(comparisons)){
 # that they are very much in the right ball park is good.
 
 # .. getting and storing the AUCs
-storeAUC<-c()
+storeAUC_div<-c()
 for(comp in 1:nrow(comparisons)){
   comp<-comparisons[comp,]
   metaSubs <- filter(metadata,disease_stat %in% comp)
@@ -211,25 +212,11 @@ for(comp in 1:nrow(comparisons)){
   }else{
     metaSubs<-mutate(metaSubs, response = as.numeric(disease_stat == "DiarrhealControl"))
   }
-  
-  # .... base Model
-  baseModel  <- glm(response ~ age + gender + race2 + antibiotics..3mo + antacid + Surgery6mos + 
-                      historyCdiff + ResidenceCdiff + Healthworker,
-                    family=binomial(link="logit"),
-                    data = metaSubs)
-  
-  metaSubs$prediction  <- predict(baseModel,metaSubs,type="response")
-  
-  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
-  
-  storeAUC<-rbind(storeAUC,c(paste(comp,collapse=" - "),"base",round(AUCval[2],3),
-                             round(AUCval[1],3),
-                             round(AUCval[3],3)))
 
   # .... metagenomic model - inverse simpsons
   AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$inverseSimpson))
   
-  storeAUC<-rbind(storeAUC,c(paste(comp,collapse=" - "),"metagenomic-diversity",round(AUCval[2],3),
+  storeAUC_div<-rbind(storeAUC_div,c(paste(comp,collapse=" - "),"metagenomic-diversity",round(AUCval[2],3),
                              round(AUCval[1],3),
                              round(AUCval[3],3)))
   
@@ -244,7 +231,7 @@ for(comp in 1:nrow(comparisons)){
   
   AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
   
-  storeAUC<-rbind(storeAUC,c(paste(comp,collapse=" - "),"combined (metagenomic = diversity)",round(AUCval[2],3),
+  storeAUC_div<-rbind(storeAUC_div,c(paste(comp,collapse=" - "),"combined (metagenomic = diversity)",round(AUCval[2],3),
                              round(AUCval[1],3),
                              round(AUCval[3],3)))
 
@@ -382,53 +369,77 @@ for(comp in 1:nrow(comparisons)){
     metaSubs<-mutate(metaSubs, response = as.numeric(disease_stat == "DiarrhealControl"))
   }
   
-  # .... base Model
-  baseModel  <- glm(response ~ age + gender + race2 + antibiotics..3mo + antacid + Surgery6mos + 
-                      historyCdiff + ResidenceCdiff + Healthworker,
-                    family=binomial(link="logit"),
-                    data = metaSubs)
-  
-  metaSubs$prediction  <- predict(baseModel,metaSubs,type="response")
-  
-  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
-  
-  storeAUC<-rbind(storeAUC,c(paste(comp,collapse=" - "),"base",round(AUCval[2],3),
-                             round(AUCval[1],3),
-                             round(AUCval[3],3)))
-  
   # .... metagenomic model - biomarkers
   
   biomarker<-log2(abundDat[metaSubs$sampleID,as.character(unique(bestOTUs_noMeta_pass$Predictor))]+1)
-  #biomarker<-abundDat[metaSubs$sampleID,colnames(abundDat) %in% schubertOTUs]
   
-  biomarkerMeta<-merge(x=metadata,y=biomarker,by.x="sampleID",by.y=0)
+  biomarkerMeta<-merge(x=metaSubs,y=biomarker,by.x="sampleID",by.y=0)
   
-  tmp<-select(biomarkerMeta, contains("Otu")) %>% as.matrix
+  fla<-as.formula(paste("response ~ ", paste(colnames(biomarkerMeta)[grepl("Otu",colnames(biomarkerMeta))], collapse="+")))
   
-  biomarkerFit<-glm(metaSubs$response~tmp,family=binomial(link="logit"),maxit=1000)
+  biomarkerFit<-glm(fla,data=biomarkerMeta,family=binomial(link="logit"),maxit=1000)
   
-  metaSubs$prediction  <- predict(biomarkerFit,biomarker,type="response")
+  metaSubs$prediction  <- predict(biomarkerFit,biomarkerMeta,type="response")
   
-  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$inverseSimpson))
+  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
   
-  storeAUC<-rbind(storeAUC,c(paste(comp,collapse=" - "),"metagenomic-biomarkers",round(AUCval[2],3),
+  storeAUC_noMeta<-rbind(storeAUC_noMeta,c(paste(comp,collapse=" - "),"metagenomic-biomarkers",round(AUCval[2],3),
                              round(AUCval[1],3),
                              round(AUCval[3],3)))
   
   # .... combined model
+  fla<-as.formula(paste("response ~ ", paste(c(colnames(biomarkerMeta)[grepl("Otu",colnames(biomarkerMeta))],
+                                               "age","gender"," race2","antibiotics..3mo","antacid",
+                                               "Surgery6mos","historyCdiff","ResidenceCdiff", "Healthworker"), collapse="+")))
   
-  combinedModel  <- glm(response ~ age + gender + race2 + antibiotics..3mo + antacid + Surgery6mos + 
-                          historyCdiff + ResidenceCdiff + Healthworker + inverseSimpson,
-                        family=binomial(link="logit"),
-                        data = metaSubs)
   
-  metaSubs$prediction  <- predict(combinedModel,metaSubs,type="response")
+  combinedModel  <- glm(fla,data=biomarkerMeta,family=binomial(link="logit"),maxit=1000)
+  
+  metaSubs$prediction  <- predict(combinedModel,biomarkerMeta,type="response")
   
   AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
   
-  storeAUC<-rbind(storeAUC,c(paste(comp,collapse=" - "),"combined (metagenomic = biomarkers)",round(AUCval[2],3),
+  storeAUC_noMeta<-rbind(storeAUC_noMeta,c(paste(comp,collapse=" - "),"combined (metagenomic = biomarkers)",round(AUCval[2],3),
                              round(AUCval[1],3),
                              round(AUCval[3],3)))
+  
+  
+  
+  # .... metagenomic model - biomarkers#
+  biomarker<-log2(abundDat[metaSubs$sampleID,colnames(abundDat) %in% schubertOTUs])
+  
+  biomarkerMeta<-merge(x=metaSubs,y=biomarker,by.x="sampleID",by.y=0)
+  
+  fla<-as.formula(paste("response ~ ", paste(colnames(biomarkerMeta)[grepl("Otu",colnames(biomarkerMeta))], collapse="+")))
+  
+  biomarkerFit<-glm(fla,data=biomarkerMeta,family=binomial(link="logit"),maxit=1000)
+  
+  metaSubs$prediction  <- predict(biomarkerFit,biomarkerMeta,type="response")
+  
+  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
+  
+  storeAUC_noMeta<-rbind(storeAUC_noMeta,c(paste(comp,collapse=" - "),"metagenomic-biomarkers(schubert)",round(AUCval[2],3),
+                                           round(AUCval[1],3),
+                                           round(AUCval[3],3)))
+  
+  # .... combined model
+  
+  
+  fla<-as.formula(paste("response ~ ", paste(c(colnames(biomarkerMeta)[grepl("Otu",colnames(biomarkerMeta))],
+                                               "age","gender"," race2","antibiotics..3mo","antacid",
+                                               "Surgery6mos","historyCdiff","ResidenceCdiff", "Healthworker"), collapse="+")))
+  
+  
+  combinedModel  <- glm(fla,data=biomarkerMeta,family=binomial(link="logit"),maxit=1000)
+  
+  metaSubs$prediction  <- predict(combinedModel,biomarkerMeta,type="response")
+  
+  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
+  
+  storeAUC_noMeta<-rbind(storeAUC_noMeta,c(paste(comp,collapse=" - "),"combined (metagenomic = biomarkers (schubert))",round(AUCval[2],3),
+                                           round(AUCval[1],3),
+                                           round(AUCval[3],3)))
+  
   
 }
 
@@ -493,8 +504,7 @@ metaVars<-c("sampleID",
             "Surgery6mos",
             "historyCdiff",
             "ResidenceCdiff",
-            "Healthworker",
-            "inverseSimpson")
+            "Healthworker")
 
 metadata.sub<- metadata[,metaVars]
 
@@ -517,11 +527,8 @@ bestOTUs_Meta_pass<-effectSummary$effectSizeSummary
 #adding another columns to indicate whether they are OTUs or metadata variables
 bestOTUs_Meta_pass$biomarkerType  <- ifelse(grepl("Otu",bestOTUs_Meta_pass$Predictor),"OTU","META")
 
-#a quick look at the useful metadata variables
-filter(bestOTUs_Meta_pass,biomarkerType == "META")
-
 #now just get at the useful OTUs, see how they do.
-bestOTUs_Meta_pass_onlyOTUs<-filter(bestOTUs_Meta_pass,biomarkerType == "OTU") %>% droplevels
+bestOTUs_Meta_pass_onlyOTUs<-bestOTUs_Meta_pass[bestOTUs_Meta_pass$biomarkerType == "OTU",] %>% droplevels
 
 #check their usefullness
 tmp<-otuCheck(bestOTUs = bestOTUs_Meta_pass_onlyOTUs, 
@@ -532,10 +539,63 @@ tmp<-otuCheck(bestOTUs = bestOTUs_Meta_pass_onlyOTUs,
               response = "multinomial")
 
 #similarity to schubert (simliar results to OTUs found when not including metadata)
-vennList<-vennText(A=schubertOTUs,B=levels(bestOTUs_Meta_pass_onlyOTUs$Predictor))
+vennList<-vennText(A=schubertOTUs,B=as.character(unique(bestOTUs_Meta_pass_onlyOTUs$Predictor)))
 
 #similarity to prior list (very similar, there are some differences however )
-vennList<-vennText(A=levels(bestOTUs_noMeta_pass$Predictor),B=levels(bestOTUs_Meta_pass_onlyOTUs$Predictor))
+vennList<-vennText(A=as.character(unique(bestOTUs_noMeta_pass$Predictor)),B=as.character(unique(bestOTUs_Meta_pass_onlyOTUs$Predictor)))
+
+
+# .. getting and storing the AUCs
+storeAUC_Meta<-c()
+for(comp in 1:nrow(comparisons)){
+  comp<-comparisons[comp,]
+  metaSubs <- filter(metadata,disease_stat %in% comp)
+  print(comp)
+  #always make sure to select right reference
+  if("Case" %in% comp){
+    metaSubs<-mutate(metaSubs, response = as.numeric(disease_stat == "Case"))
+  }else{
+    metaSubs<-mutate(metaSubs, response = as.numeric(disease_stat == "DiarrhealControl"))
+  }
+    
+  # .... metagenomic model - biomarkers
+  
+  biomarker<-log2(abundDat[metaSubs$sampleID,as.character(unique(bestOTUs_Meta_pass_onlyOTUs$Predictor))]+1)
+  #biomarker<-abundDat[metaSubs$sampleID,colnames(abundDat) %in% schubertOTUs]
+  
+  biomarkerMeta<-merge(x=metaSubs,y=biomarker,by.x="sampleID",by.y=0)
+  
+  fla<-as.formula(paste("response ~ ", paste(colnames(biomarkerMeta)[grepl("Otu",colnames(biomarkerMeta))], collapse="+")))
+  
+  biomarkerFit<-glm(fla,data=biomarkerMeta,family=binomial(link="logit"),maxit=1000)
+  
+  metaSubs$prediction  <- predict(biomarkerFit,biomarkerMeta,type="response")
+  
+  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
+  
+  storeAUC_Meta<-rbind(storeAUC_Meta,c(paste(comp,collapse=" - "),"metagenomic-biomarkers (meta)",round(AUCval[2],3),
+                                           round(AUCval[1],3),
+                                           round(AUCval[3],3)))
+  
+  # .... combined model
+  
+  
+  fla<-as.formula(paste("response ~ ", paste(c(colnames(biomarkerMeta)[grepl("Otu",colnames(biomarkerMeta))],
+                                               "age","gender"," race2","antibiotics..3mo","antacid",
+                                               "Surgery6mos","historyCdiff","ResidenceCdiff", "Healthworker"), collapse="+")))
+  
+  
+  combinedModel  <- glm(fla,data=biomarkerMeta,family=binomial(link="logit"),maxit=1000)
+  
+  metaSubs$prediction  <- predict(combinedModel,biomarkerMeta,type="response")
+  
+  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
+  
+  storeAUC_Meta<-rbind(storeAUC_Meta,c(paste(comp,collapse=" - "),"combined (metagenomic = biomarkers (meta))",round(AUCval[2],3),
+                                           round(AUCval[1],3),
+                                           round(AUCval[3],3)))
+  
+}
 
 
 
@@ -583,10 +643,10 @@ bestOTUs_Meta_continuous_pass<-effectSummary$effectSizeSummary
 bestOTUs_Meta_continuous_pass$biomarkerType  <- ifelse(grepl("Otu",bestOTUs_Meta_continuous_pass$Predictor),"OTU","META")
 
 #a quick look at the useful metadata variables
-filter(bestOTUs_Meta_continuous_pass,biomarkerType == "META")
+#filter(bestOTUs_Meta_continuous_pass,biomarkerType == "META")
 
 #now just get at the useful OTUs, see how they do.
-bestOTUs_Meta_continuous_pass_onlyOTUs<-filter(bestOTUs_Meta_continuous_pass,biomarkerType == "OTU") %>% droplevels
+bestOTUs_Meta_continuous_pass_onlyOTUs<-bestOTUs_Meta_continuous_pass[bestOTUs_Meta_continuous_pass$biomarkerType == "OTU",] %>% droplevels
 
 tmp<-otuCheck(bestOTUs = bestOTUs_Meta_continuous_pass_onlyOTUs, 
               taxonomy = taxonomy, 
@@ -595,3 +655,70 @@ tmp<-otuCheck(bestOTUs = bestOTUs_Meta_continuous_pass_onlyOTUs,
               meta  = metadata[,c("sampleID","disease_stat")],
               response = "continuous")
 
+
+# .. getting and storing the AUCs
+storeAUC_Meta_div<-c()
+for(comp in 1:nrow(comparisons)){
+  comp<-comparisons[comp,]
+  metaSubs <- filter(metadata,disease_stat %in% comp)
+  print(comp)
+  #always make sure to select right reference
+  if("Case" %in% comp){
+    metaSubs<-mutate(metaSubs, response = as.numeric(disease_stat == "Case"))
+  }else{
+    metaSubs<-mutate(metaSubs, response = as.numeric(disease_stat == "DiarrhealControl"))
+  }
+  
+  # .... metagenomic model - biomarkers
+  
+  biomarker<-log2(abundDat[metaSubs$sampleID,as.character(unique(bestOTUs_Meta_continuous_pass_onlyOTUs$Predictor))]+1)
+  #biomarker<-abundDat[metaSubs$sampleID,colnames(abundDat) %in% schubertOTUs]
+  
+  biomarkerMeta<-merge(x=metaSubs,y=biomarker,by.x="sampleID",by.y=0)
+  
+  fla<-as.formula(paste("response ~ ", paste(colnames(biomarkerMeta)[grepl("Otu",colnames(biomarkerMeta))], collapse="+")))
+  
+  biomarkerFit<-glm(fla,data=biomarkerMeta,family=binomial(link="logit"),maxit=1000)
+  
+  metaSubs$prediction  <- predict(biomarkerFit,biomarkerMeta,type="response")
+  
+  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
+  
+  storeAUC_Meta_div<-rbind(storeAUC_Meta_div,c(paste(comp,collapse=" - "),"metagenomic-biomarkers (diversity)",round(AUCval[2],3),
+                                       round(AUCval[1],3),
+                                       round(AUCval[3],3)))
+  
+  # .... combined model
+  
+  
+  fla<-as.formula(paste("response ~ ", paste(c(colnames(biomarkerMeta)[grepl("Otu",colnames(biomarkerMeta))],
+                                               "age","gender"," race2","antibiotics..3mo","antacid",
+                                               "Surgery6mos","historyCdiff","ResidenceCdiff", "Healthworker"), collapse="+")))
+  
+  
+  combinedModel  <- glm(fla,data=biomarkerMeta,family=binomial(link="logit"),maxit=1000)
+  
+  metaSubs$prediction  <- predict(combinedModel,biomarkerMeta,type="response")
+  
+  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
+  
+  storeAUC_Meta_div<-rbind(storeAUC_Meta_div,c(paste(comp,collapse=" - "),"combined (metagenomic = biomarkers (diversity))",round(AUCval[2],3),
+                                       round(AUCval[1],3),
+                                       round(AUCval[3],3)))
+  
+}
+
+
+
+
+
+######################################
+# combine all of the AUC tables floating around
+
+tab<-rbind(storeAUC,
+storeAUC_div,
+storeAUC_noMeta,
+storeAUC_Meta,
+storeAUC_Meta_div)
+
+write.csv(tab,file="Reports/AUC_for_metadata.csv",quote=F)
