@@ -406,7 +406,7 @@ for(comp in 1:nrow(comparisons)){
   
   
   # .... metagenomic model - biomarkers#
-  biomarker<-log2(abundDat[metaSubs$sampleID,colnames(abundDat) %in% schubertOTUs])
+  biomarker<-log2(abundDat[metaSubs$sampleID,colnames(abundDat) %in% schubertOTUs]+1)
   
   biomarkerMeta<-merge(x=metaSubs,y=biomarker,by.x="sampleID",by.y=0)
   
