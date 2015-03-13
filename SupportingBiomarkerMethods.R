@@ -209,7 +209,7 @@ taxaCheck  <- function(otuNames = NULL,taxaLevel = NULL,taxData = NULL){
 
 otuCheck<-function(bestOTUs = NULL, taxonomy = NULL, 
                    maxTaxaLevel = "all",countMatrix = NULL,
-                   meta  = NULL,showTopX = NULL){
+                   meta  = NULL,showTopX = NULL,response=NULL){
   
   #setup for maxTaxaLevel 
   linnean = 1:6
@@ -235,13 +235,17 @@ otuCheck<-function(bestOTUs = NULL, taxonomy = NULL,
     bestOTUs <- mutate(bestOTUs,concatName =sprintf("%s (%s)",Predictor,taxaName))
   }
   
-  #shared OTUs
+  #shared OTUs only for multinomial response
+  if(response == "multinomial"){
   sharedTaxa<-ggplot(data=bestOTUs,aes(x=Response,y=concatName))+
     geom_tile(fill= "black",colour="White")+
     theme_bw()+
     ylab("")+
     xlab("")+
     ggtitle("Shared OTUs among groups")
+  }
+  
+
   
   #looking at the abundance
   if(!(is.null(showTopX))){
@@ -267,7 +271,14 @@ otuCheck<-function(bestOTUs = NULL, taxonomy = NULL,
     facet_wrap(~OTU)+
     theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0))
   
-  return(list(sharedTaxaPlot = sharedTaxa, abundancePlot = abundance))
+  if(response == "multinomial"){
+  return(list(list(taxaName = data.frame(OTU=bestOTUs$Predictor,taxaName=bestOTUs$taxaName),
+                   sharedTaxaPlot = sharedTaxa, 
+                   abundancePlot = abundance))
+  }else{
+    return(list(taxaName = data.frame(OTU=bestOTUs$Predictor,taxaName=bestOTUs$taxaName),
+                abundancePlot = abundance))
+  }
 }
 
 

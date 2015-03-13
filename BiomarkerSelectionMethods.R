@@ -149,27 +149,106 @@ ci.auc(roc(response=tmp$response,predictor=tmp$basePredDcontrol)) # 0.566 ( 0.48
 
 
 
+# ...... I think I mis-interpreted "nested logit model" after trying to fit one
+# without much success. I then realised, that what is meant is "a series of logistic
+# models, where a new variable is successively added" (i.e. the nesting is in the variables
+# and not the response).  This appraoch seems to work - even so, I don't know if fitting several
+# independent logistics is best. I do like the nnet multinom approach, you get  more of a 
+# mixed model, which I think is just a nicer way to handle this data response, maybe we should
+# talk about that.
+
+comparisons<-rbind(c("Case","DiarrhealControl"),
+                   c("Case","NonDiarrhealControl"),
+                   c("DiarrhealControl","NonDiarrhealControl"))
+
+
+# .. getting a storeing the AUCs
+storeAUC<-c()
+for(comp in 1:nrow(comparisons)){
+  comp<-comparisons[1,]
+  metaSubs <- filter(metadata,disease_stat %in% comp)
+  #always make sure to select right reference
+  if("Case" %in% comp){
+    metaSubs<-mutate(metaSubs, response = as.numeric(disease_stat == "Case"))
+  }else{
+    metaSubs<-mutate(metaSubs, response = as.numeric(disease_stat == "DiarrhealControl"))
+  }
+  
+  # .... base Model
+  baseModel  <- glm(response ~ age + gender + race2 + antibiotics..3mo + antacid + Surgery6mos + 
+                           historyCdiff + ResidenceCdiff + Healthworker,
+                    family=binomial(link="logit"),
+                    data = metaSubs)
+  
+  metaSubs$prediction  <- predict(baseModel,metaSubs,type="response")
+  
+  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
+  
+  storeAUC<-rbind(storeAUC,c(paste(comp,collapse=" - "),"base",round(AUCval[2],3),
+                  round(AUCval[1],3),
+                  round(AUCval[3],3)))
+}
+
+
+
+
 ################################
 # Diversity - inverse simpsons
-# The AUC and confidence interval measures are slightly off only in the thousandths decimal place
-# even though tht exact result is not reproduced I think this is close enough.
+# THE AUCs while using the "inverse simpsons" measure matched pretty well with some variablity in the
+# of 0.1 to 0.2 off the results reported in the paper. This could be because there are different techniques
+# to calculate the area under a curve (different approximations) that probably accounts for the difference.
+# that they are very much in the right ball park is good.
 
-# case and non-diarrheal control
-tmp <- filter(metadata,disease_stat %in% c("Case","NonDiarrhealControl")) %>%
-  select(c(disease_stat,inverseSimpson)) %>%
-  mutate(response = mapvalues(disease_stat,c("Case","NonDiarrhealControl"),c(1,0))) %>%
-  droplevels
+# .. getting and storing the AUCs
+storeAUC<-c()
+for(comp in 1:nrow(comparisons)){
+  comp<-comparisons[comp,]
+  metaSubs <- filter(metadata,disease_stat %in% comp)
+  print(comp)
+  #always make sure to select right reference
+  if("Case" %in% comp){
+    metaSubs<-mutate(metaSubs, response = as.numeric(disease_stat == "Case"))
+  }else{
+    metaSubs<-mutate(metaSubs, response = as.numeric(disease_stat == "DiarrhealControl"))
+  }
+  
+  # .... base Model
+  baseModel  <- glm(response ~ age + gender + race2 + antibiotics..3mo + antacid + Surgery6mos + 
+                      historyCdiff + ResidenceCdiff + Healthworker,
+                    family=binomial(link="logit"),
+                    data = metaSubs)
+  
+  metaSubs$prediction  <- predict(baseModel,metaSubs,type="response")
+  
+  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
+  
+  storeAUC<-rbind(storeAUC,c(paste(comp,collapse=" - "),"base",round(AUCval[2],3),
+                             round(AUCval[1],3),
+                             round(AUCval[3],3)))
 
-ci.auc(roc(response=tmp$response,predictor=tmp$inverseSimpson)) # 0.808 ( 0.752 - 0.863 ) - agree & slightly off
+  # .... metagenomic model - inverse simpsons
+  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$inverseSimpson))
+  
+  storeAUC<-rbind(storeAUC,c(paste(comp,collapse=" - "),"metagenomic-diversity",round(AUCval[2],3),
+                             round(AUCval[1],3),
+                             round(AUCval[3],3)))
+  
+  # .... combined model
+  
+  combinedModel  <- glm(response ~ age + gender + race2 + antibiotics..3mo + antacid + Surgery6mos + 
+                      historyCdiff + ResidenceCdiff + Healthworker + inverseSimpson,
+                    family=binomial(link="logit"),
+                    data = metaSubs)
+  
+  metaSubs$prediction  <- predict(combinedModel,metaSubs,type="response")
+  
+  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
+  
+  storeAUC<-rbind(storeAUC,c(paste(comp,collapse=" - "),"combined (metagenomic = diversity)",round(AUCval[2],3),
+                             round(AUCval[1],3),
+                             round(AUCval[3],3)))
 
-# case and diarrheal control
-tmp <- filter(metadata,disease_stat %in% c("Case","DiarrhealControl")) %>%
-  select(c(disease_stat,inverseSimpson)) %>%
-  mutate(response = mapvalues(disease_stat,c("Case","DiarrhealControl"),c(1,0))) %>%
-  droplevels
-
-tmp$response = factor(tmp$response,levels = c(0,1))
-ci.auc(roc(response=tmp$response,predictor=tmp$inverseSimpson)) # 0.581 ( 0.496 - 0.665 ) - agree & slightly - off 
+}
 
 
 
@@ -283,17 +362,84 @@ tmp<-otuCheck(bestOTUs = bestOTUs_noMeta_pass,
                    taxonomy = taxonomy, 
                    maxTaxaLevel = "all",
                    countMatrix = abundDat,
-                   meta  = metadata[,c("sampleID","disease_stat")])
+                   meta  = metadata[,c("sampleID","disease_stat")],
+                response = "multinomial")
 
 # of note  - there is near perfect overlap if I use *all* otus that are found (i.e. effectSize summary bootMin = 0)
 # thus, some differences are due to stringency.
 vennList<-vennText(A=schubertOTUs,B=unique(as.character(bestOTUs_noMeta_pass$Predictor)))
 
-#here it is with bootMin = 0 (there is much larger overlap if we further filter for reliable OTUs)
-effectSummary<-getEffectScore(OTUdat = bestOTUs_noMeta,bootMin=0,response="multinomial")
-bestOTUs_noMeta_pass<-effectSummary$effectSizeSummary
+# .. getting and storing the AUCs
+storeAUC_noMeta<-c()
+for(comp in 1:nrow(comparisons)){
+  comp<-comparisons[comp,]
+  metaSubs <- filter(metadata,disease_stat %in% comp)
+  print(comp)
+  #always make sure to select right reference
+  if("Case" %in% comp){
+    metaSubs<-mutate(metaSubs, response = as.numeric(disease_stat == "Case"))
+  }else{
+    metaSubs<-mutate(metaSubs, response = as.numeric(disease_stat == "DiarrhealControl"))
+  }
+  
+  # .... base Model
+  baseModel  <- glm(response ~ age + gender + race2 + antibiotics..3mo + antacid + Surgery6mos + 
+                      historyCdiff + ResidenceCdiff + Healthworker,
+                    family=binomial(link="logit"),
+                    data = metaSubs)
+  
+  metaSubs$prediction  <- predict(baseModel,metaSubs,type="response")
+  
+  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
+  
+  storeAUC<-rbind(storeAUC,c(paste(comp,collapse=" - "),"base",round(AUCval[2],3),
+                             round(AUCval[1],3),
+                             round(AUCval[3],3)))
+  
+  # .... metagenomic model - biomarkers
+  
+  biomarker<-log2(abundDat[metaSubs$sampleID,as.character(unique(bestOTUs_noMeta_pass$Predictor))]+1)
+  #biomarker<-abundDat[metaSubs$sampleID,colnames(abundDat) %in% schubertOTUs]
+  
+  biomarkerMeta<-merge(x=metadata,y=biomarker,by.x="sampleID",by.y=0)
+  
+  tmp<-select(biomarkerMeta, contains("Otu")) %>% as.matrix
+  
+  biomarkerFit<-glm(metaSubs$response~tmp,family=binomial(link="logit"),maxit=1000)
+  
+  metaSubs$prediction  <- predict(biomarkerFit,biomarker,type="response")
+  
+  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$inverseSimpson))
+  
+  storeAUC<-rbind(storeAUC,c(paste(comp,collapse=" - "),"metagenomic-biomarkers",round(AUCval[2],3),
+                             round(AUCval[1],3),
+                             round(AUCval[3],3)))
+  
+  # .... combined model
+  
+  combinedModel  <- glm(response ~ age + gender + race2 + antibiotics..3mo + antacid + Surgery6mos + 
+                          historyCdiff + ResidenceCdiff + Healthworker + inverseSimpson,
+                        family=binomial(link="logit"),
+                        data = metaSubs)
+  
+  metaSubs$prediction  <- predict(combinedModel,metaSubs,type="response")
+  
+  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
+  
+  storeAUC<-rbind(storeAUC,c(paste(comp,collapse=" - "),"combined (metagenomic = biomarkers)",round(AUCval[2],3),
+                             round(AUCval[1],3),
+                             round(AUCval[3],3)))
+  
+}
 
-vennList<-vennText(A=schubertOTUs,B=unique(as.character(bestOTUs_noMeta_pass$Predictor)))
+
+
+
+#here it is with bootMin = 0 (there is much larger overlap if we further filter for reliable OTUs)
+# effectSummary<-getEffectScore(OTUdat = bestOTUs_noMeta,bootMin=0,response="multinomial")
+# bestOTUs_noMeta_pass<-effectSummary$effectSizeSummary
+# 
+# vennList<-vennText(A=schubertOTUs,B=unique(as.character(bestOTUs_noMeta_pass$Predictor)))
 
 
 # ---- Investigate those unique to schubert
@@ -382,7 +528,8 @@ tmp<-otuCheck(bestOTUs = bestOTUs_Meta_pass_onlyOTUs,
               taxonomy = taxonomy, 
               maxTaxaLevel = "all",
               countMatrix = abundDat,
-              meta  = metadata[,c("sampleID","disease_stat")])
+              meta  = metadata[,c("sampleID","disease_stat")],
+              response = "multinomial")
 
 #similarity to schubert (simliar results to OTUs found when not including metadata)
 vennList<-vennText(A=schubertOTUs,B=levels(bestOTUs_Meta_pass_onlyOTUs$Predictor))
@@ -445,5 +592,6 @@ tmp<-otuCheck(bestOTUs = bestOTUs_Meta_continuous_pass_onlyOTUs,
               taxonomy = taxonomy, 
               maxTaxaLevel = "all",
               countMatrix = abundDat,
-              meta  = metadata[,c("sampleID","disease_stat")])
+              meta  = metadata[,c("sampleID","disease_stat")],
+              response = "continuous")
 
