@@ -176,18 +176,23 @@ for(comp in 1:nrow(comparisons)){
   }
   
   # .... base Model
-  baseModel  <- glm(response ~ age + gender + race2 + antibiotics..3mo + antacid + Surgery6mos + 
-                           historyCdiff + ResidenceCdiff + Healthworker,
-                    family=binomial(link="logit"),
-                    data = metaSubs)
+  baseModel  <- lrm(response ~ age + gender + race2 + antibiotics..3mo + antacid + Surgery6mos + 
+                      historyCdiff + ResidenceCdiff + Healthworker,
+                    data = metaSubs,x=TRUE,y=TRUE)
   
-  metaSubs$prediction  <- predict(baseModel,metaSubs,type="response")
+  # I am going to use harrell's C for the AUC, this will allow me to 
+  # to adjust the AUC for overfitting
+
+  optimismModel<-validate(baseModel)
+  #now adjust that AUC
+  harrellC_orj<-(optimismModel["Dxy","index.orig"]+1)/2
+  #harrells c statistics
+  harrellC_adj<-(optimismModel["Dxy","index.corrected"]+1)/2
   
-  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
+  storeAUC<-rbind(storeAUC,c(paste(comp,collapse=" - "),"base",
+                             round(harrellC_orj,3),
+                              round(harrellC_adj,3)))
   
-  storeAUC<-rbind(storeAUC,c(paste(comp,collapse=" - "),"base",round(AUCval[2],3),
-                  round(AUCval[1],3),
-                  round(AUCval[3],3)))
 }
 
 
@@ -213,28 +218,29 @@ for(comp in 1:nrow(comparisons)){
     metaSubs<-mutate(metaSubs, response = as.numeric(disease_stat == "DiarrhealControl"))
   }
 
-  # .... metagenomic model - inverse simpsons
+  # .... genomic model - inverse simpsons
   AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$inverseSimpson))
   
-  storeAUC_div<-rbind(storeAUC_div,c(paste(comp,collapse=" - "),"metagenomic-diversity",round(AUCval[2],3),
-                             round(AUCval[1],3),
-                             round(AUCval[3],3)))
+  storeAUC_div<-rbind(storeAUC_div,c(paste(comp,collapse=" - "),"genomic-diversity",
+                                     round(AUCval[2],3),
+                                    "NA"))
   
   # .... combined model
   
-  combinedModel  <- glm(response ~ age + gender + race2 + antibiotics..3mo + antacid + Surgery6mos + 
+  combinedModel  <- lrm(response ~ age + gender + race2 + antibiotics..3mo + antacid + Surgery6mos + 
                       historyCdiff + ResidenceCdiff + Healthworker + inverseSimpson,
-                    family=binomial(link="logit"),
-                    data = metaSubs)
+                    data = metaSubs,x=TRUE,y=TRUE)
   
-  metaSubs$prediction  <- predict(combinedModel,metaSubs,type="response")
+  optimismModel<-validate(combinedModel)
+  #now adjust that AUC
+  harrellC_orj<-(optimismModel["Dxy","index.orig"]+1)/2
+  #harrells c statistics
+  harrellC_adj<-(optimismModel["Dxy","index.corrected"]+1)/2
   
-  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
+  storeAUC_div<-rbind(storeAUC_div,c(paste(comp,collapse=" - "),"combined - genomic (diversity)",
+                             round(harrellC_orj,3),
+                             round(harrellC_adj,3)))
   
-  storeAUC_div<-rbind(storeAUC_div,c(paste(comp,collapse=" - "),"combined (metagenomic = diversity)",round(AUCval[2],3),
-                             round(AUCval[1],3),
-                             round(AUCval[3],3)))
-
 }
 
 
@@ -250,6 +256,11 @@ schubertOTUs<-c(1,2,14,22,33,24,10,40,29,13,36,11,15,68,39,
                 85,45,28,41,30,18,21,6,7,3,5,4) %>% 
                 formatC(width=4,flag="0") 
 schubertOTUs <-paste0("Otu",schubertOTUs)
+
+#Drop the OTU 19 (which is c.difficle) at Pat's request
+otuIDX<-which(colnames(abundDat) == "Otu0019")
+cDiff_OTU<-abundDat[,otuIDX]
+abundDat<-abundDat[,c(1:(otuIDX-1),(otuIDX+1):ncol(abundDat))]
 
 #1. Filter 1 :  distribution filter
 # remove any OTUs where more than 90% of the data is 0
@@ -369,23 +380,30 @@ for(comp in 1:nrow(comparisons)){
     metaSubs<-mutate(metaSubs, response = as.numeric(disease_stat == "DiarrhealControl"))
   }
   
-  # .... metagenomic model - biomarkers
+  
+  
+  
+  # .... genomic model - biomarkers
   
   biomarker<-log2(abundDat[metaSubs$sampleID,as.character(unique(bestOTUs_noMeta_pass$Predictor))]+1)
-  
   biomarkerMeta<-merge(x=metaSubs,y=biomarker,by.x="sampleID",by.y=0)
   
   fla<-as.formula(paste("response ~ ", paste(colnames(biomarkerMeta)[grepl("Otu",colnames(biomarkerMeta))], collapse="+")))
   
-  biomarkerFit<-glm(fla,data=biomarkerMeta,family=binomial(link="logit"),maxit=1000)
+  biomarkerFit<-lrm(fla,data=biomarkerMeta,maxit=1000,x=TRUE,y=TRUE)
   
-  metaSubs$prediction  <- predict(biomarkerFit,biomarkerMeta,type="response")
+  optimismModel<-validate(biomarkerFit)
+  #now adjust that AUC
+  harrellC_orj<-(optimismModel["Dxy","index.orig"]+1)/2
+  #harrells c statistics
+  harrellC_adj<-(optimismModel["Dxy","index.corrected"]+1)/2
   
-  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
   
-  storeAUC_noMeta<-rbind(storeAUC_noMeta,c(paste(comp,collapse=" - "),"metagenomic-biomarkers",round(AUCval[2],3),
-                             round(AUCval[1],3),
-                             round(AUCval[3],3)))
+  storeAUC_noMeta<-rbind(storeAUC_noMeta,c(paste(comp,collapse=" - "),"genomic-biomarkers",
+                                            round(harrellC_orj,3),
+                                            round(harrellC_adj,3)))
+  
+  
   
   # .... combined model
   fla<-as.formula(paste("response ~ ", paste(c(colnames(biomarkerMeta)[grepl("Otu",colnames(biomarkerMeta))],
@@ -393,54 +411,57 @@ for(comp in 1:nrow(comparisons)){
                                                "Surgery6mos","historyCdiff","ResidenceCdiff", "Healthworker"), collapse="+")))
   
   
-  combinedModel  <- glm(fla,data=biomarkerMeta,family=binomial(link="logit"),maxit=1000)
+  combinedModel  <- lrm(fla,data=biomarkerMeta,maxit=1000,x=TRUE,y=TRUE)
   
-  metaSubs$prediction  <- predict(combinedModel,biomarkerMeta,type="response")
-  
-  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
-  
-  storeAUC_noMeta<-rbind(storeAUC_noMeta,c(paste(comp,collapse=" - "),"combined (metagenomic = biomarkers)",round(AUCval[2],3),
-                             round(AUCval[1],3),
-                             round(AUCval[3],3)))
+  optimismModel<-validate(combinedModel)
+  #now adjust that AUC
+  harrellC_orj<-(optimismModel["Dxy","index.orig"]+1)/2
+  #harrells c statistics
+  harrellC_adj<-(optimismModel["Dxy","index.corrected"]+1)/2
   
   
+  storeAUC_noMeta<-rbind(storeAUC_noMeta,c(paste(comp,collapse=" - "),"combined (genomic = biomarkers)",
+                                          round(harrellC_orj,3),
+                                          round(harrellC_adj,3)))
   
-  # .... metagenomic model - biomarkers#
+  
+  
+  # .... genomic model - biomarkers
   biomarker<-log2(abundDat[metaSubs$sampleID,colnames(abundDat) %in% schubertOTUs]+1)
   
   biomarkerMeta<-merge(x=metaSubs,y=biomarker,by.x="sampleID",by.y=0)
   
   fla<-as.formula(paste("response ~ ", paste(colnames(biomarkerMeta)[grepl("Otu",colnames(biomarkerMeta))], collapse="+")))
   
-  biomarkerFit<-glm(fla,data=biomarkerMeta,family=binomial(link="logit"),maxit=1000)
+  biomarkerFit<-lrm(fla,data=biomarkerMeta,maxit=1000,x=TRUE,y=TRUE)
   
-  metaSubs$prediction  <- predict(biomarkerFit,biomarkerMeta,type="response")
+  optimismModel<-validate(biomarkerFit)
+  #now adjust that AUC
+  harrellC_orj<-(optimismModel["Dxy","index.orig"]+1)/2
+  #harrells c statistics
+  harrellC_adj<-(optimismModel["Dxy","index.corrected"]+1)/2
   
-  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
-  
-  storeAUC_noMeta<-rbind(storeAUC_noMeta,c(paste(comp,collapse=" - "),"metagenomic-biomarkers(schubert)",round(AUCval[2],3),
-                                           round(AUCval[1],3),
-                                           round(AUCval[3],3)))
+  storeAUC_noMeta<-rbind(storeAUC_noMeta,c(paste(comp,collapse=" - "),"genomic-biomarkers(schubert)",
+                                           round(harrellC_orj,3),
+                                           round(harrellC_adj,3)))
   
   # .... combined model
-  
-  
   fla<-as.formula(paste("response ~ ", paste(c(colnames(biomarkerMeta)[grepl("Otu",colnames(biomarkerMeta))],
                                                "age","gender"," race2","antibiotics..3mo","antacid",
                                                "Surgery6mos","historyCdiff","ResidenceCdiff", "Healthworker"), collapse="+")))
   
+  combinedModel  <- lrm(fla,data=biomarkerMeta,maxit=1000,x=TRUE,y=TRUE)
+
+  optimismModel<-validate(combinedModel)
   
-  combinedModel  <- glm(fla,data=biomarkerMeta,family=binomial(link="logit"),maxit=1000)
+  #now adjust that AUC
+  harrellC_orj<-(optimismModel["Dxy","index.orig"]+1)/2
+  #harrells c statistics
+  harrellC_adj<-(optimismModel["Dxy","index.corrected"]+1)/2
   
-  metaSubs$prediction  <- predict(combinedModel,biomarkerMeta,type="response")
-  
-  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
-  
-  storeAUC_noMeta<-rbind(storeAUC_noMeta,c(paste(comp,collapse=" - "),"combined (metagenomic = biomarkers (schubert))",round(AUCval[2],3),
-                                           round(AUCval[1],3),
-                                           round(AUCval[3],3)))
-  
-  
+  storeAUC_noMeta<-rbind(storeAUC_noMeta,c(paste(comp,collapse=" - "),"combined (genomic = biomarkers (schubert))",
+                                           round(harrellC_orj,3),
+                                           round(harrellC_adj,3)))
 }
 
 
@@ -523,7 +544,6 @@ bestOTUs_Meta<-getBestOTU(metadata=metadata.sub,
 effectSummary<-getEffectScore(OTUdat = bestOTUs_Meta,bootMin=(30*0.9),response="multinomial")
 bestOTUs_Meta_pass<-effectSummary$effectSizeSummary
 
-
 #adding another columns to indicate whether they are OTUs or metadata variables
 bestOTUs_Meta_pass$biomarkerType  <- ifelse(grepl("Otu",bestOTUs_Meta_pass$Predictor),"OTU","META")
 
@@ -545,10 +565,14 @@ vennList<-vennText(A=schubertOTUs,B=as.character(unique(bestOTUs_Meta_pass_onlyO
 vennList<-vennText(A=as.character(unique(bestOTUs_noMeta_pass$Predictor)),B=as.character(unique(bestOTUs_Meta_pass_onlyOTUs$Predictor)))
 
 
+#add C.difficle Value
+metadata$cDiff<-cDiff_OTU
+
 # .. getting and storing the AUCs
 storeAUC_Meta<-c()
 for(comp in 1:nrow(comparisons)){
   comp<-comparisons[comp,]
+  
   metaSubs <- filter(metadata,disease_stat %in% comp)
   print(comp)
   #always make sure to select right reference
@@ -557,8 +581,12 @@ for(comp in 1:nrow(comparisons)){
   }else{
     metaSubs<-mutate(metaSubs, response = as.numeric(disease_stat == "DiarrhealControl"))
   }
+  
+  # .... c diff biomarker
+  
+  
     
-  # .... metagenomic model - biomarkers
+  # .... genomic model - biomarkers
   
   biomarker<-log2(abundDat[metaSubs$sampleID,as.character(unique(bestOTUs_Meta_pass_onlyOTUs$Predictor))]+1)
   #biomarker<-abundDat[metaSubs$sampleID,colnames(abundDat) %in% schubertOTUs]
@@ -567,15 +595,17 @@ for(comp in 1:nrow(comparisons)){
   
   fla<-as.formula(paste("response ~ ", paste(colnames(biomarkerMeta)[grepl("Otu",colnames(biomarkerMeta))], collapse="+")))
   
-  biomarkerFit<-glm(fla,data=biomarkerMeta,family=binomial(link="logit"),maxit=1000)
+  biomarkerFit<-lrm(fla,data=biomarkerMeta,maxit=1000,x=TRUE,y=TRUE)
   
-  metaSubs$prediction  <- predict(biomarkerFit,biomarkerMeta,type="response")
+  optimismModel<-validate(biomarkerFit)
+  #now adjust that AUC
+  harrellC_orj<-(optimismModel["Dxy","index.orig"]+1)/2
+  #harrells c statistics
+  harrellC_adj<-(optimismModel["Dxy","index.corrected"]+1)/2
   
-  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
-  
-  storeAUC_Meta<-rbind(storeAUC_Meta,c(paste(comp,collapse=" - "),"metagenomic-biomarkers (meta)",round(AUCval[2],3),
-                                           round(AUCval[1],3),
-                                           round(AUCval[3],3)))
+  storeAUC_Meta<-rbind(storeAUC_Meta,c(paste(comp,collapse=" - "),"genomic-biomarkers (meta)",
+                                          round(harrellC_orj,3),
+                                           round(harrellC_adj,3)))
   
   # .... combined model
   
@@ -583,20 +613,19 @@ for(comp in 1:nrow(comparisons)){
   fla<-as.formula(paste("response ~ ", paste(c(colnames(biomarkerMeta)[grepl("Otu",colnames(biomarkerMeta))],
                                                "age","gender"," race2","antibiotics..3mo","antacid",
                                                "Surgery6mos","historyCdiff","ResidenceCdiff", "Healthworker"), collapse="+")))
+  combinedModel  <- lrm(fla,data=biomarkerMeta,maxit=1000,x=TRUE,y=TRUE)
   
+  optimismModel<-validate(combinedModel)
   
-  combinedModel  <- glm(fla,data=biomarkerMeta,family=binomial(link="logit"),maxit=1000)
+  #now adjust that AUC
+  harrellC_orj<-(optimismModel["Dxy","index.orig"]+1)/2
+  #harrells c statistics
+  harrellC_adj<-(optimismModel["Dxy","index.corrected"]+1)/2
   
-  metaSubs$prediction  <- predict(combinedModel,biomarkerMeta,type="response")
-  
-  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
-  
-  storeAUC_Meta<-rbind(storeAUC_Meta,c(paste(comp,collapse=" - "),"combined (metagenomic = biomarkers (meta))",round(AUCval[2],3),
-                                           round(AUCval[1],3),
-                                           round(AUCval[3],3)))
-  
+  storeAUC_Meta<-rbind(storeAUC_Meta,c(paste(comp,collapse=" - "),"combined (genomic = biomarkers (meta))",
+                                            round(harrellC_orj,3),
+                                           round(harrellC_adj,3)))  
 }
-
 
 
 # ----- C. Using binomial response & no  -----
@@ -608,9 +637,7 @@ for(comp in 1:nrow(comparisons)){
 
 
 # ----- D. Continuous response  -----
-# initially, I had thought to use C.difficle (OTU 19), but since diversity seems
-# to be important, I'll try see if there are biomarkers that could "predict"
-# diversity.
+# revised, so that now the continous response is C. Diff
 
 metaVars<-c("sampleID",
             "age",
@@ -625,8 +652,9 @@ metaVars<-c("sampleID",
 
 metadata.sub<- metadata[,metaVars]
 
+
 bestOTUs_Meta_continuous<-getBestOTU(metadata=metadata.sub,
-                          response=metadata$inverseSimpson,
+                          response=log2(cDiff_OTU+1),
                           varsToRemove= NULL,
                           countMatrix=abundDat,
                           alph=1,
@@ -669,42 +697,52 @@ for(comp in 1:nrow(comparisons)){
     metaSubs<-mutate(metaSubs, response = as.numeric(disease_stat == "DiarrhealControl"))
   }
   
-  # .... metagenomic model - biomarkers
   
-  biomarker<-log2(abundDat[metaSubs$sampleID,as.character(unique(bestOTUs_Meta_continuous_pass_onlyOTUs$Predictor))]+1)
-  #biomarker<-abundDat[metaSubs$sampleID,colnames(abundDat) %in% schubertOTUs]
+  # ..... c difficle AUC
   
+  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$inverseSimpson))
+  
+  storeAUC_Meta_div<-rbind(storeAUC_Meta_div,c(paste(comp,collapse=" - "),"genomic-diversity",
+                                     round(AUCval[2],3),
+                                     "NA"))
+  
+  
+  # .... genomic model - biomarkers
+  
+  biomarker<-log2(abundDat[metaSubs$sampleID,as.character(unique(bestOTUs_Meta_continuous_pass_onlyOTUs$Predictor))]+1)  
   biomarkerMeta<-merge(x=metaSubs,y=biomarker,by.x="sampleID",by.y=0)
   
   fla<-as.formula(paste("response ~ ", paste(colnames(biomarkerMeta)[grepl("Otu",colnames(biomarkerMeta))], collapse="+")))
   
-  biomarkerFit<-glm(fla,data=biomarkerMeta,family=binomial(link="logit"),maxit=1000)
+  biomarkerFit<-lrm(fla,data=biomarkerMeta,maxit=1000,x=TRUE,y=TRUE)
   
-  metaSubs$prediction  <- predict(biomarkerFit,biomarkerMeta,type="response")
+  optimismModel<-validate(biomarkerFit)
+  #now adjust that AUC
+  harrellC_orj<-(optimismModel["Dxy","index.orig"]+1)/2
+  #harrells c statistics
+  harrellC_adj<-(optimismModel["Dxy","index.corrected"]+1)/2
   
-  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
-  
-  storeAUC_Meta_div<-rbind(storeAUC_Meta_div,c(paste(comp,collapse=" - "),"metagenomic-biomarkers (diversity)",round(AUCval[2],3),
-                                       round(AUCval[1],3),
-                                       round(AUCval[3],3)))
+  storeAUC_Meta_div<-rbind(storeAUC_Meta_div,c(paste(comp,collapse=" - "),"genomic-biomarkers (cDiff)",
+                                               round( harrellC_orj,3),
+                                       round(harrellC_adj,3)))
   
   # .... combined model
-  
   
   fla<-as.formula(paste("response ~ ", paste(c(colnames(biomarkerMeta)[grepl("Otu",colnames(biomarkerMeta))],
                                                "age","gender"," race2","antibiotics..3mo","antacid",
                                                "Surgery6mos","historyCdiff","ResidenceCdiff", "Healthworker"), collapse="+")))
   
+  combinedModel  <- lrm(fla,data=biomarkerMeta,maxit=1000,x=TRUE,y=TRUE)
+  optimismModel<-validate(combinedModel)
   
-  combinedModel  <- glm(fla,data=biomarkerMeta,family=binomial(link="logit"),maxit=1000)
+  #now adjust that AUC
+  harrellC_orj<-(optimismModel["Dxy","index.orig"]+1)/2
+  #harrells c statistics
+  harrellC_adj<-(optimismModel["Dxy","index.corrected"]+1)/2
   
-  metaSubs$prediction  <- predict(combinedModel,biomarkerMeta,type="response")
-  
-  AUCval<-ci.auc(roc(response=metaSubs$response,predictor=metaSubs$prediction))
-  
-  storeAUC_Meta_div<-rbind(storeAUC_Meta_div,c(paste(comp,collapse=" - "),"combined (metagenomic = biomarkers (diversity))",round(AUCval[2],3),
-                                       round(AUCval[1],3),
-                                       round(AUCval[3],3)))
+  storeAUC_Meta_div<-rbind(storeAUC_Meta_div,c(paste(comp,collapse=" - "),"combined (genomic = biomarkers (cDiff))",
+                                               round(harrellC_orj,3),
+                                       round(harrellC_adj,3)))
   
 }
 
