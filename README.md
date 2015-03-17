@@ -15,9 +15,5 @@ This is the developement repository for a biomarker selection method that curren
 
 
 ## Status
-Still haven't finished some analysis steps. Remaining to be done are the following:
 
-1. Run binary response
-2. Run continous response (using OTU 19 as proxy for amount of C.diff)
-3. Get the AUC, compared to base model and combined model.
-
+Abstract Submitted to ABPHM! 
