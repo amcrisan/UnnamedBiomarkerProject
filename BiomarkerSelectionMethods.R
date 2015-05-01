@@ -347,9 +347,11 @@ bestOTUs_noMeta<-getBestOTU(response=metadata$disease_stat,
 # ... effectSummary$effectSizePlot which shows the effect log odds beta
 # ... effectSummary$effectSizeSummary which is a table that has each OTU, a summary of the beta (mean, min, max ect.)
 
-effectSummary<-getEffectScore(OTUdat = bestOTUs_noMeta,bootMin=(30*0.9),response="multinomial")
+effectSummary<-getEffectScore(OTUdat = bestOTUs_noMeta,bootMin=(30*0.9),response="multinomial",taxonomy = taxonomy)
 bestOTUs_noMeta_pass<-effectSummary$effectSizeSummary
 
+
+ggsave(effectSummary$effectSizePlot,file="Figures/Multinomial_ExcludeMeta_EffectSize.tiff")
 # otuCheck gives me some diagnostic plots regarding the OTUs that have been selected
 # 1. sharedTaxaPlot - this is basically a "venn" diagram, but is more readable. It shows
 #                     whether an individual OTU is shared between (multinomial) disease states
@@ -542,8 +544,12 @@ bestOTUs_Meta<-getBestOTU(metadata=metadata.sub,
            responseType = "multinomial",
            type.measure="class")
 
-effectSummary<-getEffectScore(OTUdat = bestOTUs_Meta,bootMin=(30*0.9),response="multinomial")
+effectSummary<-getEffectScore(OTUdat = bestOTUs_Meta,bootMin=(30*0.9),response="multinomial",taxonomy=taxonomy)
 bestOTUs_Meta_pass<-effectSummary$effectSizeSummary
+
+
+ggsave(effectSummary$effectSizePlot,file="Figures/Multinomial_IncludeMeta_EffectSize.tiff")
+
 
 #adding another columns to indicate whether they are OTUs or metadata variables
 bestOTUs_Meta_pass$biomarkerType  <- ifelse(grepl("Otu",bestOTUs_Meta_pass$Predictor),"OTU","META")
@@ -664,7 +670,7 @@ bestOTUs_Meta_continuous<-getBestOTU(metadata=metadata.sub,
                           logOTUData=TRUE,
                           responseType = "continuous")
 
-effectSummary<-getEffectScore(OTUdat = bestOTUs_Meta_continuous,bootMin=(30*0.9),response="continuous")
+effectSummary<-getEffectScore(OTUdat = bestOTUs_Meta_continuous,bootMin=(30*0.9),response="continuous",taxonomy=taxonomy)
 bestOTUs_Meta_continuous_pass<-effectSummary$effectSizeSummary
 
 
@@ -683,6 +689,8 @@ tmp<-otuCheck(bestOTUs = bestOTUs_Meta_continuous_pass_onlyOTUs,
               countMatrix = abundDat,
               meta  = metadata[,c("sampleID","disease_stat")],
               response = "continuous")
+vennList<-vennText(A=schubertOTUs,B=as.character(unique(bestOTUs_Meta_continuous_pass_onlyOTUs$Predictor)))
+
 
 
 # .. getting and storing the AUCs
