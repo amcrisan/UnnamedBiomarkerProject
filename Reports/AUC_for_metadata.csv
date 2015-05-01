@@ -1,22 +1,1 @@
-,V1,V2,V3,V4,V5
-1,Case - DiarrhealControl,base,0.64,0.56,0.72
-2,Case - NonDiarrhealControl,base,0.891,0.849,0.934
-3,DiarrhealControl - NonDiarrhealControl,base,0.849,0.796,0.903
-4,Case - DiarrhealControl,metagenomic-diversity,0.581,0.496,0.665
-5,Case - DiarrhealControl,combined (metagenomic = diversity),0.651,0.572,0.731
-6,Case - NonDiarrhealControl,metagenomic-diversity,0.808,0.752,0.863
-7,Case - NonDiarrhealControl,combined (metagenomic = diversity),0.92,0.885,0.954
-8,DiarrhealControl - NonDiarrhealControl,metagenomic-diversity,0.809,0.748,0.869
-9,DiarrhealControl - NonDiarrhealControl,combined (metagenomic = diversity),0.901,0.859,0.942
-10,Case - DiarrhealControl,metagenomic-biomarkers (meta),0.924,0.887,0.961
-11,Case - DiarrhealControl,combined (metagenomic = biomarkers (meta)),0.949,0.918,0.98
-12,Case - NonDiarrhealControl,metagenomic-biomarkers (meta),1,1,1
-13,Case - NonDiarrhealControl,combined (metagenomic = biomarkers (meta)),1,1,1
-14,DiarrhealControl - NonDiarrhealControl,metagenomic-biomarkers (meta),1,1,1
-15,DiarrhealControl - NonDiarrhealControl,combined (metagenomic = biomarkers (meta)),1,1,1
-16,Case - DiarrhealControl,metagenomic-biomarkers (diversity),0.941,0.91,0.973
-17,Case - DiarrhealControl,combined (metagenomic = biomarkers (diversity)),0.962,0.938,0.986
-18,Case - NonDiarrhealControl,metagenomic-biomarkers (diversity),1,1,1
-19,Case - NonDiarrhealControl,combined (metagenomic = biomarkers (diversity)),1,1,1
-20,DiarrhealControl - NonDiarrhealControl,metagenomic-biomarkers (diversity),1,1,1
-21,DiarrhealControl - NonDiarrhealControl,combined (metagenomic = biomarkers (diversity)),1,1,1
+,,,Harell's C,Evaluation,Model,Model Type,Raw,AdjustedCase - DiarrhealControl,base,base,0.640,0.556Case - NonDiarrhealControl,base,base,0.891,0.866DiarrhealControl - NonDiarrhealControl,base,base,0.849,0.820Case - DiarrhealControl,model 1,genomic-biomarkers (exclude metadata),0.924,0.794Case - DiarrhealControl,model 2,genomic-biomarkers (include meta data ),0.894,0.771Case - DiarrhealControl,model 3,genomic-biomarkers (cDiff),0.789,0.738Case - DiarrhealControl,model 4,genomic-biomarkers(schubert),0.873,0.712Case - DiarrhealControl,base + model 1,combined (genomic = biomarkers),0.937,err*Case - DiarrhealControl,base + model 2,combined (genomic = biomarkers (meta)),0.912,0.774Case - DiarrhealControl,base + model 3,combined (genomic = biomarkers (cDiff)),0.834,0.740Case - DiarrhealControl,base + model 4,combined (genomic = biomarkers (schubert)),0.893,0.725

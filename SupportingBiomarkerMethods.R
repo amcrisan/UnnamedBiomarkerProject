@@ -127,7 +127,7 @@ getBestOTU<-function(metadata=NULL,response=NULL,varsToRemove= NULL,countMatrix=
 
 
 
-getEffectScore<-function(OTUdat = NULL, bootMin = NULL,response=NULL, extraFilter = TRUE){
+getEffectScore<-function(OTUdat = NULL, bootMin = NULL,response=NULL, extraFilter = TRUE,taxonomy=NULL){
   
   if(is.null(bootMin)){
     stop("Please select the minimum number of times a feature must be selected by glmnet [bootMin]")
@@ -177,12 +177,29 @@ getEffectScore<-function(OTUdat = NULL, bootMin = NULL,response=NULL, extraFilte
     #betaSummary<- filter(betaSummary,noZero == TRUE)
     betaSummary<-betaSummary[betaSummary$noZero == TRUE,]
   }
+  
+  #get the lowest possible taxonomic level
+  
+  #get the taxa level
+  betaSummary$taxaLevel<-sapply(as.character(betaSummary$Predictor),function(x){
+    getTaxDatLowest(otu=x,taxInfo = taxonomy)
+  })
+  
+  #get taxa name at lowest classifable level
+  betaSummary$taxaName<-taxaCheck(otuNames = as.character(betaSummary$Predictor),
+                               taxaLevel = betaSummary$taxaLevel,
+                               taxData = taxonomy)
+  
+  #look taxa at a specific level
+  betaSummary <- mutate(betaSummary,concatName =sprintf("%s (%s)",Predictor,taxaName))
+  
+  
 
   #create a small plot that shows each OTU and it's effect
   if(response == "multinomial"){
-    p<-ggplot(betaSummary,aes(x=Response,y=Predictor))
+    p<-ggplot(betaSummary,aes(x=Response,y=concatName))
   }else{
-    p<-ggplot(betaSummary,aes(x=1,y=Predictor))
+    p<-ggplot(betaSummary,aes(x=1,y=concacatName))
   }
 
   p <- p + geom_tile(aes(fill = meanBeta),colour="black")+
@@ -199,11 +216,15 @@ getEffectScore<-function(OTUdat = NULL, bootMin = NULL,response=NULL, extraFilte
 
 taxaCheck  <- function(otuNames = NULL,taxaLevel = NULL,taxData = NULL){
   otuName<-apply(cbind(otuNames,taxaLevel),1,function(x){
-    if(is.na(x[2])){return(NA)}
+    if(is.na(x[2])){return("Metadata")}
     return(taxData[[x[1]]][as.numeric(x[2])])})
   
   return(otuName)
 }
+
+
+
+
 
 
 

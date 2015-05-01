@@ -268,7 +268,7 @@ abundDat<-abundDat[,c(1:(otuIDX-1),(otuIDX+1):ncol(abundDat))]
 #
 # RATIONALE : using a statistical test with a p-value cutoff
 # "spends alpha" - this means that the p-value cutoff for subsequent 
-# statistical tests needs tobe more stringent for them to really be 
+# statistical tests needs to be more stringent for them to really be 
 # useful. Also, you don't want to waste your time performing statistical 
 # tests on features  that will be unhelpful because there is no information there.
 abFact = 0
