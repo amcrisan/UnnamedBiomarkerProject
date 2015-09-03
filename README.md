@@ -14,6 +14,6 @@ This is the developement repository for a biomarker selection method that curren
 |
 
 
-## Status
+## Current Status
 
-Abstract Submitted to ABPHM! 
+Made this repository public - work is progressing slowly and I get called into other projects
