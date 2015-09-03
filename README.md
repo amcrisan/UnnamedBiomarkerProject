@@ -16,4 +16,4 @@ This is the developement repository for a biomarker selection method that curren
 
 ## Current Status
 
-Made this repository public - work is progressing slowly and I get called into other projects
+Made this repository public - work is progressing slowly as I get called into other projects
